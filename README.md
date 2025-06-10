@@ -20,7 +20,7 @@ Application will calculate the rewards in realtime as spending amounts in differ
 Users can view detailed breakdowns of how rewards are calculated and the impact of spending patterns on potential earnings.
 Monthly spending chart included as well
 
-# Limitations
+## Limitations
 
 Currently missing out on initial bonuses like sign-up bonuses and cashbacks.
 2-card comparisons still slightly buggy and work in progress.

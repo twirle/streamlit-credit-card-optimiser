@@ -10,7 +10,7 @@ from combination_card_component import render_combination_component
 
 # Page config
 st.set_page_config(
-    page_title="Singapore Credit Card Comparison",
+    page_title="Singapore Credit Card Reward Optimizer",
     page_icon="💳",
     layout="wide"
 )
@@ -26,13 +26,13 @@ def calculate_all_card_rewards(filtered_cards_df, user_spending_data, miles_to_s
 
         # Get categories from CSV
         card_categories_list = get_card_categories(current_card)
-        card_categoriesdisplay = ", ".join(card_categories_list)
+        card_categories_display = ", ".join(card_categories_list)
 
         individual_card_results.append({
             'Card Name': current_card['Name'],
             'Issuer': current_card['Issuer'],
             'Type': current_card['Type'],
-            'Categories': card_categoriesdisplay,
+            'Categories': card_categories_display,
             'Monthly Reward': reward_amount,
             'Min Spend': current_card.get('Min Spend', 0),
             'Cap': current_card.get('Cap', 'No Cap'),
@@ -48,10 +48,10 @@ def calculate_all_card_rewards(filtered_cards_df, user_spending_data, miles_to_s
 
     # Group by card name and take the best tier for each card
     best_tier_per_card_df = all_cards_results_df.groupby(['Card Name', 'Issuer']).agg({
-        'Monthly Reward': 'max',  # Take the highest reward (best tier)
+        'Monthly Reward': 'max',
         'Type': 'first',
         'Categories': 'first',
-        'Cap Reached': 'any',  # True if any tier reaches cap
+        'Cap Reached': 'any',
         'Cap Difference': 'first',
         'Source': 'first'
     }).reset_index()
@@ -66,13 +66,12 @@ def calculate_all_card_rewards(filtered_cards_df, user_spending_data, miles_to_s
 
 
 def main():
-    st.title("🏆 Singapore Credit Card Reward Optimizer")
-    st.write("Find the best credit card for your spending pattern")
+    st.title("🏆Singapore Credit Card Reward Optimizer (Beta)")
 
     # Load credit card data
     credit_cards_df = load_data()
 
-    # Sidebar - Spending inputs and filters (persistent across components)
+    # Sidebar spending inputs and filters
     user_spending_data, miles_to_sgd_rate, miles_value_cents = create_spending_inputs()
     selected_card_types = create_filters(credit_cards_df)
 
@@ -85,12 +84,13 @@ def main():
         filtered_cards_df, user_spending_data, miles_to_sgd_rate
     )
 
-    # Create tabs with meaningful names
+    # Card analysis tabs
     single_card_tab, combination_analysis_tab = st.tabs([
         "💳 Single Card Analysis",
         "🔗 Multi-Card Strategy"
     ])
 
+    # render single card tab
     with single_card_tab:
         render_single_card_component(
             best_cards_summary_df=best_tier_per_card_df,
@@ -99,6 +99,7 @@ def main():
             miles_value_cents=miles_value_cents
         )
 
+    # render multi-card tab
     with combination_analysis_tab:
         render_combination_component(
             filtered_cards_df=filtered_cards_df,

@@ -194,6 +194,20 @@ def combine_two_cards_rewards(card1, card2, user_spending, miles_value_sgd):
         'utilities', 'retail', 'online', 'travel', 'overseas', 'other'
     ]
 
+    rate_col_map = {
+        'dining': 'Dining Rate',
+        'groceries': 'Groceries Rate',
+        'petrol': 'Petrol Rate',
+        'transport': 'Transport Rate',
+        'streaming': 'Streaming Rate',
+        'entertainment': 'Entertainment Rate',
+        'utilities': 'Utilities Rate',
+        'retail': 'Retail Rate',
+        'online': 'Online Rate',
+        'travel': 'Travel Rate',
+        'overseas': 'Overseas Rate'
+    }
+
     # Initialize spending allocation
     allocation = {cat: {'card1': 0, 'card2': 0} for cat in categories}
 
@@ -260,16 +274,50 @@ def combine_two_cards_rewards(card1, card2, user_spending, miles_value_sgd):
     for cat in categories:
         spend1 = allocation[cat]['card1']
         spend2 = allocation[cat]['card2']
+
         if spend1 > 0:
             r = calculate_category_reward(card1, cat, spend1, miles_value_sgd)
             final_reward_card1 += r
-            details_card1.append(
-                f"{cat.capitalize()}: ${spend1:.0f} → ${r:.2f}")
+
+            # Generate string with rate information
+            rate_col = rate_col_map.get(cat)
+            if rate_col and rate_col in card1:
+                rate = card1[rate_col]
+                if pd.notna(rate):
+                    if card1.get('Type') == 'Miles':
+                        details_card1.append(
+                            f"{cat.capitalize()}: ${spend1:.0f} × {rate} mpd × {miles_value_sgd:.3f} = {r:.2f}")
+                    else:
+                        details_card1.append(
+                            f"{cat.capitalize()}: ${spend1:.0f} × {rate}% = {r:.2f}")
+                else:
+                    details_card1.append(
+                        f"{cat.capitalize()}: ${spend1:.0f} → ${r:.2f}")
+            else:
+                details_card1.append(
+                    f"{cat.capitalize()}: ${spend1:.0f} → ${r:.2f}")
+
         if spend2 > 0:
             r = calculate_category_reward(card2, cat, spend2, miles_value_sgd)
             final_reward_card2 += r
-            details_card2.append(
-                f"{cat.capitalize()}: ${spend2:.0f} → ${r:.2f}")
+
+            # Generate string with rate information
+            rate_col = rate_col_map.get(cat)
+            if rate_col and rate_col in card2:
+                rate = card2[rate_col]
+                if pd.notna(rate):
+                    if card2.get('Type') == 'Miles':
+                        details_card2.append(
+                            f"{cat.capitalize()}: ${spend2:.0f} × {rate} mpd × {miles_value_sgd:.3f} = {r:.2f}")
+                    else:
+                        details_card2.append(
+                            f"{cat.capitalize()}: ${spend2:.0f} × {rate}% = {r:.2f}")
+                else:
+                    details_card2.append(
+                        f"{cat.capitalize()}: ${spend2:.0f} → ${r:.2f}")
+            else:
+                details_card2.append(
+                    f"{cat.capitalize()}: ${spend2:.0f} → ${r:.2f}")
 
     total_combined_reward = final_reward_card1 + final_reward_card2
 
