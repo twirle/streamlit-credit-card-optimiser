@@ -4,6 +4,8 @@
 
 The Streamlit Credit Card Optimizer is a web application designed to help Singaporeans find the best credit card strategies based on their spending patterns. The application calculates potential rewards from various credit cards and provides insights into the best combinations of cards to maximize benefits.
 
+Live dashboard can be found [here](https://app-credit-card-optimiser-2vcrpskqeuohjezjkqhgbj.streamlit.app/).
+
 ## Setup Instructions
 
 **Run the application**:

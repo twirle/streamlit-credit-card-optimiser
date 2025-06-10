@@ -10,7 +10,7 @@ st.markdown("""
     
     It calculates optimal rewards based on your monthly spending habits, and suggests single card or multi-card strategies.
             
-    Application is still in beta with reward cal
+    Application is still in beta with reward calculations for multi-card being worked out.
             
     **This does not take into account bonuses outside of cashback and miles, e.g. sign-up bonuses, instant bonus cashbacks, limo services to Changi, free gifts.** 
 
