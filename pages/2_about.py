@@ -1,5 +1,5 @@
 import streamlit as st
-from ui_components import initialize_spending_session_state
+from components.ui_components import initialize_spending_session_state
 
 # initialise session state for persistance of spending data
 initialize_spending_session_state()

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import re
-from calculations import find_best_card_combinations, combine_two_cards_rewards
+from services.calculations import find_best_card_combinations, combine_two_cards_rewards
 
 
 def render_combination_component(filtered_cards_df, best_single_cards_df, detailed_results_df,
@@ -360,4 +360,4 @@ def create_detailed_spending_table(card_name, allocation_data, details):
 
         df = pd.concat([df, total_row], ignore_index=True)
 
-    return df
+    return df 

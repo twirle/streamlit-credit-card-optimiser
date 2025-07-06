@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
-from ui_components import (
+from .ui_components import (
     display_miles_info,
     create_rewards_chart,
     display_results_table
@@ -34,22 +34,50 @@ def render_single_card_component(best_cards_summary_df, detailed_results_df, use
 
 
 def display_top_card_recommendation(best_cards_summary_df):
+    """Display top card recommendation with enhanced metrics and layout"""
     if len(best_cards_summary_df) > 0:
         top_recommended_card = best_cards_summary_df.iloc[0]
-        cap_status_indicator = "🚫 Cap reached" if top_recommended_card[
-            'Cap Reached'] else "✅ Under cap"
-
-        st.success(f"""
-        **💰 Best Single Card:**
         
-        **{top_recommended_card['Card Name']}** ({top_recommended_card['Issuer']})
-        
-        **Categories:** {top_recommended_card['Categories']}
-        
-        **Monthly Value**: SGD {top_recommended_card['Monthly Reward']:.2f}
-        
-        {cap_status_indicator}
-        """)
+        # Create a container for the recommendation
+        with st.container():
+            st.markdown("---")
+            st.subheader("🏆 **Best Single Card Recommendation**")
+            
+            # Use columns for better layout
+            col1, col2, col3 = st.columns([2, 1, 1])
+            
+            with col1:
+                st.markdown(f"""
+                **💳 {top_recommended_card['Card Name']}**  
+                **🏦 {top_recommended_card['Issuer']}**
+                
+                **🎯 Categories:** {top_recommended_card['Categories']}
+                """)
+            
+            with col2:
+                # Monthly reward metric
+                st.metric(
+                    label="Monthly Reward",
+                    value=f"${top_recommended_card['Monthly Reward']:.2f}",
+                    delta=None
+                )
+            
+            with col3:
+                # Annual reward metric
+                annual_reward = top_recommended_card['Monthly Reward'] * 12
+                st.metric(
+                    label="Annual Reward",
+                    value=f"${annual_reward:.2f}",
+                    delta=None
+                )
+            
+            # Cap status with better styling
+            if top_recommended_card['Cap Reached']:
+                st.error("🚫 **Cap Reached** - You're hitting the monthly spending limit")
+            else:
+                st.success("✅ **Under Cap** - You have room to earn more")
+            
+            st.markdown("---")
 
 
 def render_detailed_card_breakdown(best_cards_summary_df, detailed_results_df, user_spending_data):
@@ -136,10 +164,11 @@ def create_detailed_spending_table(card_name, details):
 
     # Add total row if there are any rows
     if not df.empty:
-        total_amount = sum(int(row["Amount"].replace("$", ""))
-                           for _, row in df.iterrows())
-        total_reward = sum(float(row["Reward"].replace("$", ""))
-                           for _, row in df.iterrows())
+        # Extract numeric values from the formatted strings
+        amounts = [int(amount_str.replace("$", "")) for amount_str in df["Amount"]]
+        rewards = [float(reward_str.replace("$", "")) for reward_str in df["Reward"]]
+        total_amount = sum(amounts)
+        total_reward = sum(rewards)
 
         total_row = pd.DataFrame([{
             "Category": "Total",
@@ -154,35 +183,61 @@ def create_detailed_spending_table(card_name, details):
 
 
 def display_card_calculation_details(best_tier_data, card_name, all_tiers_data, user_spending_data):
-    calculation_details_column, card_metrics_column = st.columns([3, 1])
-
-    with calculation_details_column:
-        st.subheader(f"💳 {card_name}")
-        st.write(f"**🎯 Categories:** {best_tier_data['Categories']}")
-
+    """Display enhanced card calculation details with better layout"""
+    
+    # Header with card info
+    st.markdown("---")
+    st.subheader(f"💳 {card_name}")
+    
+    # Card overview in columns
+    col_overview1, col_overview2, col_overview3 = st.columns([2, 1, 1])
+    
+    with col_overview1:
+        st.markdown(f"**🏦 Issuer:** {best_tier_data['Issuer']}")
+        st.markdown(f"**🎯 Categories:** {best_tier_data['Categories']}")
+        
         # Show tier information if multiple tiers exist
         if len(all_tiers_data) > 1:
-            st.info(
-                f"**Optimal tier selected:** Min spend ${best_tier_data['Min Spend']} (out of {len(all_tiers_data)} tiers)")
+            st.info(f"**Optimal tier selected:** Min spend ${best_tier_data['Min Spend']} (out of {len(all_tiers_data)} tiers)")
+    
+    with col_overview2:
+        st.metric(
+            "Monthly Reward",
+            f"${best_tier_data['Monthly Reward']:.2f}",
+            delta=None
+        )
+    
+    with col_overview3:
+        annual_reward = best_tier_data['Monthly Reward'] * 12
+        st.metric(
+            "Annual Reward",
+            f"${annual_reward:.2f}",
+            delta=None
+        )
 
-        # Detailed spending breakdown table
-        st.write("### 📊 Detailed Spending Breakdown")
-        df = create_detailed_spending_table(
-            card_name, best_tier_data['Details'])
+    # Detailed spending breakdown in expandable section
+    with st.expander("📊 Detailed Spending Breakdown", expanded=True):
+        df = create_detailed_spending_table(card_name, best_tier_data['Details'])
         if not df.empty:
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            # Use styled dataframe
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True
+            )
         else:
             st.write("No detailed breakdown available")
 
         # Show pre-cap amount if different from final
         if best_tier_data['Original Reward'] != best_tier_data['Monthly Reward']:
-            st.write(
-                f"**Total before cap:** ${best_tier_data['Original Reward']:.2f}")
+            st.warning(f"**Total before cap:** ${best_tier_data['Original Reward']:.2f}")
 
-        st.write(
-            f"**Final monthly reward:** ${best_tier_data['Monthly Reward']:.2f}")
-
-    with card_metrics_column:
+    # Card metrics and status in sidebar-like layout
+    st.markdown("### 📈 Card Analysis")
+    
+    col_metrics1, col_metrics2 = st.columns(2)
+    
+    with col_metrics1:
         # Cap status analysis
         if pd.notna(best_tier_data['Cap']) and best_tier_data['Cap'] != 'No Cap':
             if best_tier_data['Cap Reached']:
@@ -206,6 +261,8 @@ def display_card_calculation_details(best_tier_data, card_name, all_tiers_data, 
         else:
             st.info("**No Cap** - Unlimited earning potential!")
 
+    with col_metrics2:
+        # Minimum spend analysis
         if not best_tier_data['Min Spend Met']:
             st.warning(f"""
             **Minimum Spend Not Met ⚠️**
@@ -216,3 +273,7 @@ def display_card_calculation_details(best_tier_data, card_name, all_tiers_data, 
             
             Need ${best_tier_data['Min Spend'] - user_spending_data['total']} more
             """)
+        else:
+            st.success("**✅ Minimum spend requirement met**")
+    
+    st.markdown("---") 
