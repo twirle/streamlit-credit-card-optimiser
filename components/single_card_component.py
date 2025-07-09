@@ -15,15 +15,12 @@ def render_single_card_component(best_cards_summary_df, detailed_results_df, use
     rewards_comparison_chart = create_rewards_chart(
         best_cards_summary_df, miles_value_cents)
 
-    # Display top cards table
-    display_results_table(best_cards_summary_df)
+    # Display top cards table - use detailed_results_df for pagination
+    display_results_table(detailed_results_df)
 
-    left_col, right_col = st.columns([5, 2])
-
-    with left_col:
-        # Display rewards comparison chart
-        if rewards_comparison_chart:
-            st.plotly_chart(rewards_comparison_chart, use_container_width=True)
+    # Display rewards comparison chart
+    if rewards_comparison_chart:
+        st.plotly_chart(rewards_comparison_chart, use_container_width=True)
 
     # Best single card recommendation
     display_top_card_recommendation(best_cards_summary_df)
@@ -37,15 +34,15 @@ def display_top_card_recommendation(best_cards_summary_df):
     """Display top card recommendation with enhanced metrics and layout"""
     if len(best_cards_summary_df) > 0:
         top_recommended_card = best_cards_summary_df.iloc[0]
-        
+
         # Create a container for the recommendation
         with st.container():
             st.markdown("---")
             st.subheader("🏆 **Best Single Card Recommendation**")
-            
+
             # Use columns for better layout
             col1, col2, col3 = st.columns([2, 1, 1])
-            
+
             with col1:
                 st.markdown(f"""
                 **💳 {top_recommended_card['Card Name']}**  
@@ -53,7 +50,7 @@ def display_top_card_recommendation(best_cards_summary_df):
                 
                 **🎯 Categories:** {top_recommended_card['Categories']}
                 """)
-            
+
             with col2:
                 # Monthly reward metric
                 st.metric(
@@ -61,7 +58,7 @@ def display_top_card_recommendation(best_cards_summary_df):
                     value=f"${top_recommended_card['Monthly Reward']:.2f}",
                     delta=None
                 )
-            
+
             with col3:
                 # Annual reward metric
                 annual_reward = top_recommended_card['Monthly Reward'] * 12
@@ -70,13 +67,14 @@ def display_top_card_recommendation(best_cards_summary_df):
                     value=f"${annual_reward:.2f}",
                     delta=None
                 )
-            
+
             # Cap status with better styling
             if top_recommended_card['Cap Reached']:
-                st.error("🚫 **Cap Reached** - You're hitting the monthly spending limit")
+                st.error(
+                    "🚫 **Cap Reached** - You're hitting the monthly spending limit")
             else:
                 st.success("✅ **Under Cap** - You have room to earn more")
-            
+
             st.markdown("---")
 
 
@@ -90,8 +88,9 @@ def render_detailed_card_breakdown(best_cards_summary_df, detailed_results_df, u
         available_cards_for_detail = best_cards_summary_df.head(5)[
             'Card Name'].tolist()
     else:
-        available_cards_for_detail = best_cards_summary_df['Card Name'].tolist(
-        )
+        # Show all unique card names from detailed_results_df
+        available_cards_for_detail = detailed_results_df['Card Name'].unique(
+        ).tolist()
 
     selected_card_for_analysis = st.selectbox(
         "Select a card to see detailed calculation:",
@@ -149,9 +148,17 @@ def create_detailed_spending_table(card_name, details):
             else:
                 rate = ""
 
-        # Extract reward
-        reward_match = re.search(r'=\s*(\d+\.\d+)', detail)
-        reward = float(reward_match.group(1)) if reward_match else 0.0
+        # Extract reward - handle both cashback and miles formats
+        # For cashback: "Dining: $500.00 × 5% = $25.00"
+        # For miles: "Dining: $500.00 × 3 mpd = 1500 miles × $0.020 = $30.00"
+        reward_match = re.search(r'=\s*\$(\d+\.\d+)$', detail)
+        if reward_match:
+            reward = float(reward_match.group(1))
+        else:
+            # Fallback: try to find any dollar amount at the end
+            reward_match_fallback = re.search(r'\$(\d+\.\d+)$', detail)
+            reward = float(reward_match_fallback.group(
+                1)) if reward_match_fallback else 0.0
 
         rows.append({
             "Category": category,
@@ -165,8 +172,10 @@ def create_detailed_spending_table(card_name, details):
     # Add total row if there are any rows
     if not df.empty:
         # Extract numeric values from the formatted strings
-        amounts = [int(amount_str.replace("$", "")) for amount_str in df["Amount"]]
-        rewards = [float(reward_str.replace("$", "")) for reward_str in df["Reward"]]
+        amounts = [int(amount_str.replace("$", ""))
+                   for amount_str in df["Amount"]]
+        rewards = [float(reward_str.replace("$", ""))
+                   for reward_str in df["Reward"]]
         total_amount = sum(amounts)
         total_reward = sum(rewards)
 
@@ -184,29 +193,33 @@ def create_detailed_spending_table(card_name, details):
 
 def display_card_calculation_details(best_tier_data, card_name, all_tiers_data, user_spending_data):
     """Display enhanced card calculation details with better layout"""
-    
+
     # Header with card info
     st.markdown("---")
     st.subheader(f"💳 {card_name}")
-    
+
     # Card overview in columns
     col_overview1, col_overview2, col_overview3 = st.columns([2, 1, 1])
-    
+
     with col_overview1:
         st.markdown(f"**🏦 Issuer:** {best_tier_data['Issuer']}")
         st.markdown(f"**🎯 Categories:** {best_tier_data['Categories']}")
-        
+
         # Show tier information if multiple tiers exist
         if len(all_tiers_data) > 1:
-            st.info(f"**Optimal tier selected:** Min spend ${best_tier_data['Min Spend']} (out of {len(all_tiers_data)} tiers)")
-    
+            min_spend_val = best_tier_data['Min Spend']
+            min_spend_str = f"${min_spend_val:.2f}" if min_spend_val not in (
+                None, 'N/A') else "N/A"
+            st.info(
+                f"**Optimal tier selected:** Min spend {min_spend_str} (out of {len(all_tiers_data)} tiers)")
+
     with col_overview2:
         st.metric(
             "Monthly Reward",
             f"${best_tier_data['Monthly Reward']:.2f}",
             delta=None
         )
-    
+
     with col_overview3:
         annual_reward = best_tier_data['Monthly Reward'] * 12
         st.metric(
@@ -217,7 +230,8 @@ def display_card_calculation_details(best_tier_data, card_name, all_tiers_data, 
 
     # Detailed spending breakdown in expandable section
     with st.expander("📊 Detailed Spending Breakdown", expanded=True):
-        df = create_detailed_spending_table(card_name, best_tier_data['Details'])
+        df = create_detailed_spending_table(
+            card_name, best_tier_data['Details'])
         if not df.empty:
             # Use styled dataframe
             st.dataframe(
@@ -230,50 +244,63 @@ def display_card_calculation_details(best_tier_data, card_name, all_tiers_data, 
 
         # Show pre-cap amount if different from final
         if best_tier_data['Original Reward'] != best_tier_data['Monthly Reward']:
-            st.warning(f"**Total before cap:** ${best_tier_data['Original Reward']:.2f}")
+            st.warning(
+                f"**Total before cap:** ${best_tier_data['Original Reward']:.2f}")
 
     # Card metrics and status in sidebar-like layout
     st.markdown("### 📈 Card Analysis")
-    
+
     col_metrics1, col_metrics2 = st.columns(2)
-    
+
     with col_metrics1:
         # Cap status analysis
-        if pd.notna(best_tier_data['Cap']) and best_tier_data['Cap'] != 'No Cap':
+        cap_val = best_tier_data['Cap']
+        cap_str = f"${cap_val:.2f}" if cap_val not in (
+            None, 'No Cap', 'N/A') else "No Cap"
+        cap_diff = best_tier_data['Cap Difference']
+        cap_diff_str = f"${cap_diff:.2f}" if cap_diff is not None else "N/A"
+        if cap_val not in (None, 'No Cap', 'N/A'):
             if best_tier_data['Cap Reached']:
                 st.error(f"""
                 **🚫 Cap Reached!**
                 
-                Monthly cap: ${best_tier_data['Cap']}
+                Monthly cap: {cap_str}
                 
-                Amount over cap: ${best_tier_data['Cap Difference']:.2f}
+                Amount over cap: {cap_diff_str}
                 
-                You're losing ${best_tier_data['Cap Difference']:.2f}/month
+                You're losing {cap_diff_str}/month
                 """)
             else:
-                st.success(f"""
+                st.success(f""" 
                 **✅ Under Cap**
                 
-                Monthly cap: ${best_tier_data['Cap']}
+                Monthly cap: {cap_str}
                 
-                Room to earn: ${best_tier_data['Cap Difference']:.2f}
+                Room to earn: {cap_diff_str}
                 """)
         else:
             st.info("**No Cap** - Unlimited earning potential!")
 
     with col_metrics2:
         # Minimum spend analysis
+        min_spend_val = best_tier_data['Min Spend']
+        min_spend_str = f"${min_spend_val:.2f}" if min_spend_val not in (
+            None, 'N/A') else "N/A"
         if not best_tier_data['Min Spend Met']:
+            need_more = min_spend_val - \
+                user_spending_data['total'] if min_spend_val not in (
+                    None, 'N/A') else None
+            need_more_str = f"${need_more:.2f}" if need_more is not None else "N/A"
             st.warning(f"""
             **Minimum Spend Not Met ⚠️**
             
-            Required: ${best_tier_data['Min Spend']}
+            Required: {min_spend_str}
             
             Your spend: ${user_spending_data['total']}
             
-            Need ${best_tier_data['Min Spend'] - user_spending_data['total']} more
+            Need {need_more_str} more
             """)
         else:
             st.success("**✅ Minimum spend requirement met**")
-    
-    st.markdown("---") 
+
+    st.markdown("---")

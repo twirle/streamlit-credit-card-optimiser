@@ -16,6 +16,8 @@ def initialize_spending_session_state():
             'online': 250,
             'travel': 0,
             'overseas': 50,
+            'retail': 200,
+            'departmental': 100,
             'other': 150
         }
 
@@ -44,20 +46,10 @@ def create_spending_inputs():
             step=0.1,
             help="Value per mile in cents SGD"
         )
-        
-        # Show miles value guide
-        if miles_value_cents <= 2.5:
-            st.info("💰 Economy flights range")
-        elif miles_value_cents <= 6.0:
-            st.info("✈️ Business class range")
-        else:
-            st.info("👑 First class range")
 
     # Update session state
     st.session_state.miles_value_cents = miles_value_cents
     st.session_state.miles_to_sgd_rate = miles_value_cents / 100
-
-    st.sidebar.markdown("---")
 
     # Enhanced spending inputs with progress indicators
     st.sidebar.subheader("💸 Spending Categories")
@@ -90,6 +82,16 @@ def create_spending_inputs():
             online = st.number_input(
                 "Online", 0, 1000, st.session_state.user_spending_data['online'], 25, key="online")
 
+    # Group 2.5: Shopping
+    with st.sidebar.expander("🛍️ Shopping", expanded=True):
+        col_shopping1, col_shopping2 = st.columns(2)
+        with col_shopping1:
+            retail = st.number_input(
+                "Retail", 0, 1000, st.session_state.user_spending_data['retail'], 25, key="retail")
+        with col_shopping2:
+            departmental = st.number_input(
+                "Departmental", 0, 500, st.session_state.user_spending_data['departmental'], 25, key="departmental")
+
     # Group 3: Travel & Others
     with st.sidebar.expander("✈️ Travel & Others", expanded=True):
         col5, col6 = st.columns(2)
@@ -104,7 +106,8 @@ def create_spending_inputs():
 
     # Calculate total
     total = dining + groceries + petrol + transport + streaming + \
-        entertainment + utilities + online + travel + overseas + other
+        entertainment + utilities + online + travel + \
+        overseas + retail + departmental + other
 
     # Update session state with all values
     st.session_state.user_spending_data.update({
@@ -118,26 +121,16 @@ def create_spending_inputs():
         'online': online,
         'travel': travel,
         'overseas': overseas,
+        'retail': retail,
+        'departmental': departmental,
         'other': other,
         'total': total
     })
 
     # Enhanced total display with progress bar
-    st.sidebar.markdown("---")
-    
     # Spending summary with metrics
-    col_total1, col_total2 = st.sidebar.columns([1, 1])
-    with col_total1:
-        st.metric("Total Spending", f"${total:,}")
-    with col_total2:
-        # Show spending level indicator
-        if total < 800:
-            st.warning("Low spender")
-        elif total < 1500:
-            st.info("Medium spender")
-        else:
-            st.success("High spender")
-    
+    st.sidebar.metric("Total Spending", f"${total:,}")
+
     # Progress bar for spending categories
     if total > 0:
         st.sidebar.progress(min(total / 2000, 1.0), text="Spending Level")
@@ -146,7 +139,7 @@ def create_spending_inputs():
 
 
 def create_filters(df):
-    st.sidebar.header("🔍 Filters")
+    """Create filters for card types"""
     filter_option = st.sidebar.selectbox(
         "Select Card Type:",
         options=["All Cards", "Miles Only", "Cashback Only"],
@@ -154,7 +147,13 @@ def create_filters(df):
     )
 
     if filter_option == "All Cards":
-        card_types = df['Type'].unique().tolist()
+        # Handle both column naming conventions
+        if 'Card Type' in df.columns:
+            card_types = df['Card Type'].unique().tolist()
+        elif 'card_type' in df.columns:
+            card_types = df['card_type'].unique().tolist()
+        else:
+            card_types = ["Miles", "Cashback"]
     elif filter_option == "Miles Only":
         card_types = ["Miles"]
     else:  # "Cashback Only"
@@ -176,7 +175,7 @@ def display_miles_info(miles_value_cents):
 def create_rewards_chart(display_results_df, miles_value_cents):
     """Create enhanced rewards comparison chart with better styling"""
     if len(display_results_df) > 0:
-        chart_data = display_results_df.head(8).sort_values(
+        chart_data = display_results_df.head(10).sort_values(
             'Monthly Reward', ascending=True)
 
         # Enhanced color scheme
@@ -189,17 +188,18 @@ def create_rewards_chart(display_results_df, miles_value_cents):
             chart_data,
             x='Monthly Reward',
             y='Card Name',
-            color='Type',
+            color='Card Type',
             title=f"Monthly Reward Comparison (Miles @ {miles_value_cents:.1f}¢ each)",
-            labels={'Monthly Reward': 'Monthly Reward ($)', 'Card Name': 'Credit Card'},
+            labels={
+                'Monthly Reward': 'Monthly Reward ($)', 'Card Name': 'Credit Card'},
             orientation='h',
             color_discrete_map=color_map,
             hover_data=['Issuer', 'Categories']
         )
-        
+
         # Enhanced layout
         fig.update_layout(
-            height=500,
+            height=600,  # Increased height to accommodate 10 cards
             title_x=0.5,
             title_font_size=16,
             showlegend=True,
@@ -208,68 +208,69 @@ def create_rewards_chart(display_results_df, miles_value_cents):
             paper_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=20, r=20, t=40, b=20)
         )
-        
+
         # Enhanced hover template
         fig.update_traces(
             hovertemplate="<b>%{y}</b><br>" +
-                         "Monthly Reward: $%{x:.2f}<br>" +
-                         "Issuer: %{customdata[0]}<br>" +
-                         "Categories: %{customdata[1]}<br>" +
-                         "<extra></extra>"
+            "Monthly Reward: $%{x:.2f}<br>" +
+            "Issuer: %{customdata[0]}<br>" +
+            "Categories: %{customdata[1]}<br>" +
+            "<extra></extra>"
         )
-        
+
         return fig
     return None
 
 
 def display_results_table(display_results_df):
-    """Display results table with enhanced styling and metrics"""
-    display_df = display_results_df.head(10).copy()
-    display_df['Monthly Reward'] = display_df['Monthly Reward'].round(2)
+    """Display results table with enhanced styling and metrics, always showing all results in a scrollable table."""
+    if display_results_df.empty:
+        st.write("No results to display.")
+        return
+
+    # Sort by Monthly Reward descending
+    display_results_df = display_results_df.sort_values(
+        'Monthly Reward', ascending=False).copy()
+
+    # Format Monthly Reward as currency
+    display_results_df['Monthly Reward'] = display_results_df['Monthly Reward'].apply(
+        lambda x: f"${x:.2f}")
 
     # Create styled cap status with better visual indicators
-    display_df['Cap Status'] = display_df.apply(lambda row:
-                                                "🚫 Capped" if row['Cap Reached'] else
-                                                "✅ Under Cap", axis=1)
+    display_results_df['Cap Status'] = display_results_df.apply(lambda row:
+                                                                "🚫 Capped" if row['Cap Reached'] else
+                                                                "✅ Under Cap", axis=1)
 
-    # Add ranking column with better styling
-    display_df.insert(0, 'Rank', range(1, len(display_df) + 1))
+    # Add ranking column with medal emojis for top 3
+    display_results_df.insert(0, 'Rank', range(1, len(display_results_df) + 1))
+    display_results_df['Rank'] = display_results_df['Rank'].astype(str)
+    if len(display_results_df) >= 1:
+        display_results_df.iloc[0, 0] = '🥇'
+    if len(display_results_df) >= 2:
+        display_results_df.iloc[1, 0] = '🥈'
+    if len(display_results_df) >= 3:
+        display_results_df.iloc[2, 0] = '🥉'
 
-    # Replace top 3 ranks with medal emojis
-    if len(display_df) >= 1:
-        display_df.iloc[0, 0] = '🥇'
-    if len(display_df) >= 2:
-        display_df.iloc[1, 0] = '🥈'
-    if len(display_df) >= 3:
-        display_df.iloc[2, 0] = '🥉'
-
-    # Format monthly reward as currency
-    display_df['Monthly Reward'] = display_df['Monthly Reward'].apply(lambda x: f"${x:.2f}")
-
-    # Use styled dataframe for better presentation
-    st.dataframe(
-        display_df[['Rank', 'Card Name', 'Issuer', 'Categories',
-                    'Type', 'Monthly Reward', 'Cap Status']],
-        use_container_width=True,
-        hide_index=True
-    )
+    # Show table with selected columns (scrollable if many rows)
+    st.dataframe(display_results_df[['Rank', 'Card Name', 'Card Type',
+                 'Monthly Reward', 'Cap Status']], hide_index=True, use_container_width=True)
 
 
 def create_summary_dashboard(user_spending_data, best_cards_summary_df, miles_value_cents):
     """Create a summary dashboard with key metrics and insights"""
-    
+
     st.markdown("## 📊 **Spending & Rewards Summary**")
-    
+
     # Key metrics in a grid layout
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         st.metric(
             "Total Monthly Spending",
             f"${user_spending_data['total']:,}",
             help="Your total monthly spending across all categories"
         )
-    
+
     with col2:
         if len(best_cards_summary_df) > 0:
             best_reward = best_cards_summary_df.iloc[0]['Monthly Reward']
@@ -280,7 +281,7 @@ def create_summary_dashboard(user_spending_data, best_cards_summary_df, miles_va
             )
         else:
             st.metric("Best Monthly Reward", "$0.00")
-    
+
     with col3:
         if len(best_cards_summary_df) > 0:
             best_annual = best_cards_summary_df.iloc[0]['Monthly Reward'] * 12
@@ -291,10 +292,11 @@ def create_summary_dashboard(user_spending_data, best_cards_summary_df, miles_va
             )
         else:
             st.metric("Best Annual Reward", "$0.00")
-    
+
     with col4:
         if len(best_cards_summary_df) > 0 and user_spending_data['total'] > 0:
-            reward_rate = (best_cards_summary_df.iloc[0]['Monthly Reward'] / user_spending_data['total']) * 100
+            reward_rate = (
+                best_cards_summary_df.iloc[0]['Monthly Reward'] / user_spending_data['total']) * 100
             st.metric(
                 "Reward Rate",
                 f"{reward_rate:.1f}%",
@@ -302,10 +304,10 @@ def create_summary_dashboard(user_spending_data, best_cards_summary_df, miles_va
             )
         else:
             st.metric("Reward Rate", "0.0%")
-    
+
     # Spending breakdown chart
     st.markdown("### 💰 Spending Breakdown")
-    
+
     # Prepare spending data for chart
     spending_categories = {
         'Dining': user_spending_data['dining'],
@@ -318,12 +320,15 @@ def create_summary_dashboard(user_spending_data, best_cards_summary_df, miles_va
         'Online': user_spending_data['online'],
         'Travel': user_spending_data['travel'],
         'Overseas': user_spending_data['overseas'],
+        'Retail': user_spending_data['retail'],
+        'Departmental': user_spending_data['departmental'],
         'Other': user_spending_data['other']
     }
-    
+
     # Filter out zero spending categories
-    spending_categories = {k: v for k, v in spending_categories.items() if v > 0}
-    
+    spending_categories = {k: v for k,
+                           v in spending_categories.items() if v > 0}
+
     if spending_categories:
         categories = list(spending_categories.keys())
         amounts = list(spending_categories.values())
@@ -331,7 +336,7 @@ def create_summary_dashboard(user_spending_data, best_cards_summary_df, miles_va
             'Category': categories,
             'Amount': amounts
         })
-        
+
         fig = px.pie(
             spending_df,
             values='Amount',
@@ -339,36 +344,39 @@ def create_summary_dashboard(user_spending_data, best_cards_summary_df, miles_va
             title="Monthly Spending Distribution",
             color_discrete_sequence=px.colors.qualitative.Set3
         )
-        
+
         fig.update_layout(
             title_x=0.5,
             showlegend=True,
             height=400
         )
-        
+
         st.plotly_chart(fig, use_container_width=True)
-    
+
     # Insights section
     st.markdown("### 💡 **Key Insights**")
-    
+
     insights_col1, insights_col2 = st.columns(2)
-    
+
     with insights_col1:
         # Top spending category
         if spending_categories:
-            top_category = max(spending_categories.keys(), key=lambda k: spending_categories[k])
+            top_category = max(spending_categories.keys(),
+                               key=lambda k: spending_categories[k])
             top_amount = spending_categories[top_category]
             st.info(f"**Highest spending:** {top_category} (${top_amount:,})")
-        
+
         # Spending level insight
         total_spending = user_spending_data['total']
         if total_spending < 800:
-            st.warning("**Low spender:** Consider cards with no minimum spend requirements")
+            st.warning(
+                "**Low spender:** Consider cards with no minimum spend requirements")
         elif total_spending < 1500:
             st.info("**Medium spender:** You can access most card tiers")
         else:
-            st.success("**High spender:** You can maximize rewards with premium cards")
-    
+            st.success(
+                "**High spender:** You can maximize rewards with premium cards")
+
     with insights_col2:
         # Miles valuation insight
         if miles_value_cents <= 2.5:
@@ -377,13 +385,11 @@ def create_summary_dashboard(user_spending_data, best_cards_summary_df, miles_va
             st.info("**Miles value:** Business class range - premium travel benefits")
         else:
             st.info("**Miles value:** First class range - luxury travel rewards")
-        
+
         # Card type recommendation
-        if len(best_cards_summary_df) > 0:
-            best_card_type = best_cards_summary_df.iloc[0]['Type']
+        if not best_cards_summary_df.empty:
+            best_card_type = best_cards_summary_df.iloc[0]['Card Type']
             if best_card_type == 'Miles':
-                st.success("**Recommendation:** Miles cards work best for your spending pattern")
+                st.info('✈️ You are likely to benefit most from a miles card.')
             else:
-                st.success("**Recommendation:** Cashback cards work best for your spending pattern")
-    
-    st.markdown("---") 
+                st.info('💵 You are likely to benefit most from a cashback card.')

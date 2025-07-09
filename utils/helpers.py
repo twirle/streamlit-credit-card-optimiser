@@ -80,7 +80,8 @@ def validate_spending_data(spending_data: Dict[str, Any]) -> bool:
     """
     required_categories = [
         'dining', 'groceries', 'petrol', 'transport', 'streaming',
-        'entertainment', 'utilities', 'online', 'travel', 'overseas', 'other'
+        'entertainment', 'utilities', 'online', 'travel', 'overseas', 
+        'retail', 'departmental', 'other'
     ]
     
     # Check all required categories exist
@@ -123,7 +124,9 @@ def get_top_cards_by_category(cards_df: pd.DataFrame, category: str, top_n: int 
         'utilities': 'Utilities Rate',
         'online': 'Online Rate',
         'travel': 'Travel Rate',
-        'overseas': 'Overseas Rate'
+        'overseas': 'Overseas Rate',
+        'retail': 'Retail Rate',
+        'departmental': 'Departmental Rate'
     }
     
     rate_column = category_rate_map.get(category)

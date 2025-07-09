@@ -40,9 +40,28 @@ class DataLoader:
             rates_df = pd.read_csv(self.data_dir / "category_rates.csv")
             categories_df = pd.read_csv(self.data_dir / "card_categories.csv")
 
-            # Validate data
+            # Validate data using original column names
             if not validate_credit_card_data(cards_df, tiers_df, rates_df, categories_df):
                 raise ValueError("Invalid credit card data structure")
+
+            # Rename columns to Title Case for consistency across the app
+            cards_df = cards_df.rename(columns={
+                'name': 'Card Name',
+                'card_type': 'Card Type',
+                'issuer': 'Issuer'
+            })
+            
+            tiers_df = tiers_df.rename(columns={
+                'min_spend': 'Min Spend',
+                'description': 'Description'
+            })
+            
+            rates_df = rates_df.rename(columns={
+                'rate_value': 'Rate Value',
+                'rate_type': 'Rate Type',
+                'cap_amount': 'Cap Amount',
+                'cap_type': 'Cap Type'
+            })
 
             # Store for caching
             self._cards_df = cards_df
@@ -72,7 +91,7 @@ class DataLoader:
         if self._cards_df is None:
             self.load_credit_card_data()
 
-        return self._cards_df[self._cards_df['card_type'] == card_type]
+        return self._cards_df[self._cards_df['Card Type'] == card_type]
 
     def get_card_tiers(self, card_id: int) -> pd.DataFrame:
         """
@@ -135,20 +154,20 @@ class DataLoader:
         tiers = self.get_card_tiers(card_id)
 
         # Filter tiers where min_spend is met
-        suitable_tiers = tiers[tiers['min_spend'] <= total_spending]
+        suitable_tiers = tiers[tiers['Min Spend'] <= total_spending]
 
         if suitable_tiers.empty:
             return None
 
         # Get the tier with highest min_spend (best tier)
-        best_tier_row = suitable_tiers.loc[suitable_tiers['min_spend'].idxmax(
+        best_tier_row = suitable_tiers.loc[suitable_tiers['Min Spend'].idxmax(
         )]
 
         return CardTier(
             tier_id=best_tier_row['tier_id'],
             card_id=best_tier_row['card_id'],
-            min_spend=best_tier_row['min_spend'],
-            description=best_tier_row['description']
+            min_spend=best_tier_row['Min Spend'],
+            description=best_tier_row['Description']
         )
 
     def get_card_info(self, card_id: int) -> Optional[CreditCard]:
@@ -172,11 +191,9 @@ class DataLoader:
         row = card_row.iloc[0]
         return CreditCard(
             card_id=row['card_id'],
-            name=row['name'],
-            issuer=row['issuer'],
-            card_type=row['card_type'],
-            annual_fee=row['annual_fee'],
-            source_url=row['source_url']
+            name=row['Card Name'],
+            issuer=row['Issuer'],
+            card_type=row['Card Type']
         )
 
     def get_all_cards(self) -> List[CreditCard]:
@@ -193,11 +210,9 @@ class DataLoader:
         for _, row in self._cards_df.iterrows():
             cards.append(CreditCard(
                 card_id=row['card_id'],
-                name=row['name'],
-                issuer=row['issuer'],
-                card_type=row['card_type'],
-                annual_fee=row['annual_fee'],
-                source_url=row['source_url']
+                name=row['Card Name'],
+                issuer=row['Issuer'],
+                card_type=row['Card Type']
             ))
 
         return cards

@@ -50,22 +50,34 @@ def render_combination_component(filtered_cards_df, best_single_cards_df, detail
 
 
 def display_combination_strategies(combinations_df, best_single_reward, best_single_name, miles_value_cents):
-    # Prepare display data
-    top_combinations_df = combinations_df.head(5).copy()
-    top_combinations_df['Monthly Reward'] = top_combinations_df['Monthly Reward'].round(
-        2)
-    top_combinations_df['vs Best Single'] = top_combinations_df['Monthly Reward'].apply(
+    # Always show all combinations in a scrollable table
+    if combinations_df.empty:
+        st.write("No combinations to display.")
+        return
+
+    display_df = combinations_df.copy()
+    display_df['vs Best Single'] = display_df['Monthly Reward'].apply(
         lambda reward: f"+${reward - best_single_reward:.2f}" if reward > best_single_reward else f"${reward - best_single_reward:.2f}"
     )
+    display_df['Monthly Reward'] = display_df['Monthly Reward'].apply(lambda x: f"${x:.2f}")
 
-    # Display combinations table
+    # Add ranking column with medal emojis for top 3
+    display_df.insert(0, 'Rank', range(1, len(display_df) + 1))
+    display_df['Rank'] = display_df['Rank'].astype(str)
+    if len(display_df) >= 1:
+        display_df.iloc[0, 0] = '🥇'
+    if len(display_df) >= 2:
+        display_df.iloc[1, 0] = '🥈'
+    if len(display_df) >= 3:
+        display_df.iloc[2, 0] = '🥉'
+
     st.dataframe(
-        top_combinations_df[['Card Name', 'Issuer',
-                             'Categories', 'Monthly Reward', 'vs Best Single']],
-        use_container_width=True
+        display_df[['Rank', 'Card Name', 'Categories', 'Monthly Reward', 'vs Best Single']],
+        use_container_width=True,
+        hide_index=True
     )
 
-    # Comparison chart
+    # Comparison chart (show top 10)
     if len(combinations_df) > 0:
         strategy_comparison_chart = create_strategy_comparison_chart(
             combinations_df, best_single_reward, best_single_name
@@ -87,8 +99,8 @@ def create_strategy_comparison_chart(combinations_df, best_single_reward, best_s
         'Strategy Type': 'Single Card'
     })
 
-    # Add top 5 combinations
-    for _, combination_data in combinations_df.head(5).iterrows():
+    # Add top 10 combinations
+    for _, combination_data in combinations_df.head(10).iterrows():
         comparison_strategies.append({
             'Strategy': combination_data['Card Name'],
             'Monthly Reward': combination_data['Monthly Reward'],
@@ -142,12 +154,20 @@ def render_combination_details(combinations_df, filtered_cards_df, user_spending
                                miles_to_sgd_rate, best_single_reward):
     st.header("🔍 Detailed Multi-Card Rewards Analysis")
 
-    top_combinations_for_detail = combinations_df.head(5)['Card Name'].tolist()
+    # Combination selection options
+    show_limited_combinations = st.checkbox("Show only top 10 combinations", value=True)
+
+    if show_limited_combinations:
+        available_combinations_for_detail = combinations_df.head(10)['Card Name'].tolist()
+    else:
+        # Show all combinations
+        available_combinations_for_detail = combinations_df['Card Name'].tolist()
+
     selected_combination_name = st.selectbox(
         "Select a combination to analyze:",
-        options=top_combinations_for_detail,
+        options=available_combinations_for_detail,
         index=0,
-        help="Showing top 5 combinations for detailed analysis"
+        help="Select a combination to view detailed reward calculation breakdown"
     )
 
     if selected_combination_name:
@@ -178,18 +198,18 @@ def display_combination_breakdown(combination_data, combination_name, filtered_c
 
         if len(individual_card_names) == 2:
             # Get card data and calculate detailed breakdown
-            first_card_data = filtered_cards_df[filtered_cards_df['Name']
+            first_card_data = filtered_cards_df[filtered_cards_df['Card Name']
                                                 == individual_card_names[0]].iloc[0]
-            second_card_data = filtered_cards_df[filtered_cards_df['Name']
+            second_card_data = filtered_cards_df[filtered_cards_df['Card Name']
                                                  == individual_card_names[1]].iloc[0]
 
             detailed_combination_result = combine_two_cards_rewards(
                 first_card_data, second_card_data, user_spending_data, miles_to_sgd_rate
             )
 
-            # Enhanced displays - REMOVED card_contributions_summary
+            # Enhanced displays
             display_spending_allocation_table(
-                detailed_combination_result['allocation'], individual_card_names)
+                detailed_combination_result['allocation'], individual_card_names, filtered_cards_df)
 
             display_detailed_breakdown_expandable(
                 detailed_combination_result['allocation'],
@@ -228,41 +248,51 @@ def display_combination_breakdown(combination_data, combination_name, filtered_c
         st.info("**No Caps Reached** - Combination optimized to avoid caps!")
 
 
-def display_spending_allocation_table(allocation_data, card_names):
-    st.write("### 📊 Optimal Spending Allocation")
+def display_spending_allocation_table(allocation_data, card_names, filtered_cards_df=None):
+    st.write("### 📊 Card Rewards Breakdown")
+
+    # The allocation_data structure is:
+    # {
+    #   'Card Name 1': {'reward': amount, 'categories': [...], 'details': [...]},
+    #   'Card Name 2': {'reward': amount, 'categories': [...], 'details': [...]}
+    # }
 
     allocation_rows = []
-    for category, allocation in allocation_data.items():
-        if allocation['card1'] > 0 or allocation['card2'] > 0:
-            allocation_rows.append({
-                'Category': category.capitalize(),
-                card_names[0]: f"${allocation['card1']:.0f}" if allocation['card1'] > 0 else "-",
-                card_names[1]: f"${allocation['card2']:.0f}" if allocation['card2'] > 0 else "-",
-                'Total': f"${allocation['card1'] + allocation['card2']:.0f}"
-            })
+    for card_name, card_data in allocation_data.items():
+        # Default card type to None
+        card_type = None
+        if filtered_cards_df is not None and 'Card Type' in filtered_cards_df.columns:
+            match = filtered_cards_df[filtered_cards_df['Card Name'] == card_name]
+            if not match.empty:
+                card_type = match.iloc[0]['Card Type']
+        allocation_rows.append({
+            'Card': card_name,
+            'Card Type': card_type,
+            'Monthly Reward': f"${card_data['reward']:.2f}",
+            'Categories': ', '.join(card_data['categories']) if card_data['categories'] else 'N/A'
+        })
 
     if allocation_rows:
         allocation_df = pd.DataFrame(allocation_rows)
 
-        # Calculate totals
-        total_card1 = sum(allocation['card1']
-                          for allocation in allocation_data.values())
-        total_card2 = sum(allocation['card2']
-                          for allocation in allocation_data.values())
-        total_total = total_card1 + total_card2
+        # Calculate total reward
+        total_reward = sum(card_data['reward']
+                           for card_data in allocation_data.values())
 
-        # Append total row
+        # Add total row
         total_row = {
-            'Category': 'Total',
-            card_names[0]: f"${total_card1:.0f}",
-            card_names[1]: f"${total_card2:.0f}",
-            'Total': f"${total_total:.0f}"
+            'Card': 'Total',
+            'Card Type': '',
+            'Monthly Reward': f"${total_reward:.2f}",
+            'Categories': 'Combined'
         }
 
         allocation_df = pd.concat(
             [allocation_df, pd.DataFrame([total_row])], ignore_index=True)
 
         st.dataframe(allocation_df, use_container_width=True, hide_index=True)
+    else:
+        st.write("No allocation data available")
 
 
 def display_detailed_breakdown_expandable(allocation_data, card_names, detailed_result):
@@ -270,35 +300,22 @@ def display_detailed_breakdown_expandable(allocation_data, card_names, detailed_
 
     with st.expander("📋 Detailed Spending Breakdown", expanded=False):
 
-        # Card 1 in container
-        with st.container():
-            st.write(f"**{card_names[0]} Breakdown**")
-            if detailed_result['details_card1']:
-                df1 = create_detailed_spending_table(
-                    card_names[0], allocation_data, detailed_result['details_card1'])
-                if not df1.empty:
-                    st.dataframe(df1, use_container_width=True,
-                                 hide_index=True)
+        # Display breakdown for each card
+        for card_name, card_data in allocation_data.items():
+            with st.container():
+                st.write(f"**{card_name} Breakdown**")
+                if card_data['details']:
+                    df = create_detailed_spending_table(
+                        card_name, allocation_data, card_data['details'])
+                    if not df.empty:
+                        st.dataframe(df, use_container_width=True,
+                                     hide_index=True)
+                    else:
+                        st.write("No spending details available for this card")
                 else:
-                    st.write("No spending allocated to this card")
-            else:
-                st.write("No spending allocated to this card")
+                    st.write("No spending details available for this card")
 
-        st.markdown("---")
-
-        # Card 2 in container
-        with st.container():
-            st.write(f"**{card_names[1]} Breakdown**")
-            if detailed_result['details_card2']:
-                df2 = create_detailed_spending_table(
-                    card_names[1], allocation_data, detailed_result['details_card2'])
-                if not df2.empty:
-                    st.dataframe(df2, use_container_width=True,
-                                 hide_index=True)
-                else:
-                    st.write("No spending allocated to this card")
-            else:
-                st.write("No spending allocated to this card")
+            st.markdown("---")
 
 
 def create_detailed_spending_table(card_name, allocation_data, details):
@@ -331,9 +348,17 @@ def create_detailed_spending_table(card_name, allocation_data, details):
             else:
                 rate = ""
 
-        # Extract reward
-        reward_match = re.search(r'=\s*(\d+\.\d+)', detail)
-        reward = float(reward_match.group(1)) if reward_match else 0.0
+        # Extract reward - handle both cashback and miles formats
+        # For cashback: "Dining: $500.00 × 5% = $25.00"
+        # For miles: "Dining: $500.00 × 3 mpd = 1500 miles × $0.020 = $30.00"
+        reward_match = re.search(r'=\s*\$(\d+\.\d+)$', detail)
+        if reward_match:
+            reward = float(reward_match.group(1))
+        else:
+            # Fallback: try to find any dollar amount at the end
+            reward_match_fallback = re.search(r'\$(\d+\.\d+)$', detail)
+            reward = float(reward_match_fallback.group(
+                1)) if reward_match_fallback else 0.0
 
         rows.append({
             "Category": category,
@@ -346,10 +371,10 @@ def create_detailed_spending_table(card_name, allocation_data, details):
 
     # Add total row if there are any rows
     if not df.empty:
-        total_amount = sum(int(row["Amount"].replace("$", ""))
-                           for _, row in df.iterrows())
-        total_reward = sum(float(row["Reward"].replace("$", ""))
-                           for _, row in df.iterrows())
+        total_amount = sum([int(str(row["Amount"]).replace("$", ""))
+                           for _, row in df.iterrows()])
+        total_reward = sum([float(str(row["Reward"]).replace("$", ""))
+                           for _, row in df.iterrows()])
 
         total_row = pd.DataFrame([{
             "Category": "Total",
@@ -360,4 +385,4 @@ def create_detailed_spending_table(card_name, allocation_data, details):
 
         df = pd.concat([df, total_row], ignore_index=True)
 
-    return df 
+    return df

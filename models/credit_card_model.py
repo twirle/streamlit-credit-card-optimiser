@@ -9,34 +9,26 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 import pandas as pd
 
-
 @dataclass
 class CreditCard:
-    """Data model for a credit card"""
     card_id: int
     name: str
     issuer: str
     card_type: str  # 'Miles' or 'Cashback'
-    annual_fee: float = 0.0
-    source_url: str = ""
 
     def __post_init__(self):
         if self.card_type not in ['Miles', 'Cashback']:
             raise ValueError("Card type must be 'Miles' or 'Cashback'")
 
-
 @dataclass
 class CardTier:
-    """Data model for card spending tiers"""
     tier_id: int
     card_id: int
     min_spend: float
     description: str = ""
 
-
 @dataclass
 class CategoryRate:
-    """Data model for category-specific rates"""
     rate_id: int
     tier_id: int
     category: str
@@ -52,17 +44,13 @@ class CategoryRate:
             raise ValueError(
                 "Cap type must be 'dollars_earned' or 'dollars_spent'")
 
-
 @dataclass
 class CardCategory:
-    """Data model for card-category relationships"""
     card_id: int
     category: str
 
-
 @dataclass
 class UserSpending:
-    """Data model for user spending data"""
     dining: float = 0.0
     groceries: float = 0.0
     petrol: float = 0.0
@@ -73,19 +61,20 @@ class UserSpending:
     online: float = 0.0
     travel: float = 0.0
     overseas: float = 0.0
+    retail: float = 0.0
+    departmental: float = 0.0
     other: float = 0.0
 
     @property
     def total(self) -> float:
-        """Calculate total spending"""
         return sum([
             self.dining, self.groceries, self.petrol, self.transport,
             self.streaming, self.entertainment, self.utilities,
-            self.online, self.travel, self.overseas, self.other
+            self.online, self.travel, self.overseas, self.retail, 
+            self.departmental, self.other
         ])
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary format"""
         return {
             'dining': self.dining,
             'groceries': self.groceries,
@@ -97,14 +86,14 @@ class UserSpending:
             'online': self.online,
             'travel': self.travel,
             'overseas': self.overseas,
+            'retail': self.retail,
+            'departmental': self.departmental,
             'other': self.other,
             'total': self.total
         }
 
-
 @dataclass
 class RewardCalculation:
-    """Data model for reward calculation results"""
     card_name: str
     tier_description: str
     monthly_reward: float
@@ -118,10 +107,8 @@ class RewardCalculation:
         if self.details is None:
             self.details = []
 
-
 @dataclass
 class CardRewardBreakdown:
-    """Data model for detailed card reward breakdown"""
     card_id: int
     card_name: str
     tier_id: int
@@ -131,61 +118,35 @@ class CardRewardBreakdown:
     cap_status: Dict[str, Any]
     min_spend_met: bool
 
-
 def validate_credit_card_data(cards_df: pd.DataFrame, tiers_df: pd.DataFrame,
                               rates_df: pd.DataFrame, categories_df: pd.DataFrame) -> bool:
-    """
-    Validate normalized credit card data
-
-    Args:
-        cards_df: DataFrame containing card information
-        tiers_df: DataFrame containing tier information
-        rates_df: DataFrame containing rate information
-        categories_df: DataFrame containing category information
-
-    Returns:
-        bool: True if data is valid, False otherwise
-    """
-    # Check required columns exist
     required_cards_columns = ['card_id', 'name', 'issuer', 'card_type']
     required_tiers_columns = ['tier_id', 'card_id', 'min_spend']
-    required_rates_columns = ['rate_id', 'tier_id',
-                              'category', 'rate_value', 'rate_type']
+    required_rates_columns = ['rate_id', 'tier_id', 'category', 'rate_value', 'rate_type']
     required_categories_columns = ['card_id', 'category']
 
     for col in required_cards_columns:
         if col not in cards_df.columns:
             return False
-
     for col in required_tiers_columns:
         if col not in tiers_df.columns:
             return False
-
     for col in required_rates_columns:
         if col not in rates_df.columns:
             return False
-
     for col in required_categories_columns:
         if col not in categories_df.columns:
             return False
-
-    # Check data types
     if not all(cards_df['card_type'].isin(['Miles', 'Cashback'])):
         return False
-
     if not all(rates_df['rate_type'].isin(['percentage', 'mpd'])):
         return False
-
-    # Check foreign key relationships
     card_ids = set(cards_df['card_id'])
     tier_card_ids = set(tiers_df['card_id'])
     rate_tier_ids = set(rates_df['tier_id'])
     category_card_ids = set(categories_df['card_id'])
-
     if not tier_card_ids.issubset(card_ids):
         return False
-
     if not category_card_ids.issubset(card_ids):
         return False
-
-    return True
+    return True 
