@@ -2,10 +2,12 @@ import streamlit as st
 import pandas as pd
 
 # Import custom modules
-from services.data_loader import get_data_loader
-from services.calculations import get_reward_calculator
+from services.data.card_loader import get_card_loader
+from services.rewards_service import get_rewards_service
 from models.credit_card_model import UserSpending
-from components.ui_components import create_spending_inputs, create_filters, create_summary_dashboard
+from components.inputs.spending_inputs import create_spending_inputs
+from components.inputs.filters import create_filters
+from components.layout.summary_dashboard import create_summary_dashboard
 from components.single_card_component import render_single_card_component
 from components.combination_card_component import render_combination_component
 
@@ -17,8 +19,9 @@ st.set_page_config(
 )
 
 
+@st.cache_data(ttl=1800, max_entries=50)  # Cache for 30 minutes
 def convert_spending_to_model(spending_dict: dict) -> UserSpending:
-    """Convert spending dictionary to UserSpending model"""
+    """Convert spending dictionary to UserSpending model with caching"""
     return UserSpending(
         dining=spending_dict.get('dining', 0.0),
         groceries=spending_dict.get('groceries', 0.0),
@@ -36,43 +39,60 @@ def convert_spending_to_model(spending_dict: dict) -> UserSpending:
     )
 
 
-def convert_results_to_dataframe(results: list, cards_df: pd.DataFrame, card_categories_df: pd.DataFrame, tiers_df: pd.DataFrame, rates_df: pd.DataFrame) -> pd.DataFrame:
+@st.cache_data(ttl=900, max_entries=100)  # Cache for 15 minutes
+def convert_results_to_dataframe(results: list, available_cards: pd.DataFrame, card_categories: pd.DataFrame, card_tiers: pd.DataFrame, reward_rates: pd.DataFrame) -> pd.DataFrame:
     """Convert reward calculation results to DataFrame for display, including card_type, Issuer, Categories, Cap, and Min Spend."""
     if not results:
         return pd.DataFrame()
 
+    # Use lookup tables for better performance
+    card_loader = get_card_loader()
+    lookup_tables = card_loader.build_lookup_tables()
+    
+    card_name_to_id = lookup_tables['card_name_to_id']
+    card_id_to_info = lookup_tables['card_id_to_info']
+    card_id_to_categories = lookup_tables['card_id_to_categories']
+    card_id_to_tiers = lookup_tables['card_id_to_tiers']
+    tier_id_to_rates = lookup_tables['tier_id_to_rates']
+
     data = []
     for result in results:
-        # Lookup card_type and issuer by card name
-        card_type = None
-        issuer = None
-        categories = None
+        # Lookup card info from optimized lookup table
+        card_id = card_name_to_id.get(result.card_name)
+        card_info = card_id_to_info.get(card_id, {}) if card_id else {}
+        card_type = card_info.get('type')
+        issuer = card_info.get('issuer')
+        
+        # Lookup categories from optimized lookup table (convert tuple back to list)
+        categories_list = list(card_id_to_categories.get(card_id, ())) if card_id else []
+        categories = ', '.join(categories_list)
+        
+        # Lookup tier and cap info from optimized lookup table
         cap = 'No Cap'
         min_spend = None
+        if card_id and card_id in card_id_to_tiers:
+            tiers = list(card_id_to_tiers[card_id])  # Convert tuple back to list
+            # Find matching tier by description
+            matching_tier = None
+            for tier in tiers:
+                if tier['description'] == result.tier_description:
+                    matching_tier = tier
+                    break
+            
+            if not matching_tier and len(tiers) == 1:
+                matching_tier = tiers[0]  # fallback to single tier
+            
+            if matching_tier:
+                tier_id = matching_tier['tier_id']
+                min_spend = matching_tier['min_spend']
+                # Find max cap for this tier from optimized lookup table
+                if tier_id in tier_id_to_rates:
+                    tier_rates = list(tier_id_to_rates[tier_id])  # Convert tuple back to list
+                    cap_amounts = [rate['cap_amount'] for rate in tier_rates 
+                                 if rate.get('cap_amount') is not None]
+                    if cap_amounts:
+                        cap = max(cap_amounts)
         
-        # Use consistent Title Case column names
-        match = cards_df[cards_df['Card Name'] == result.card_name]
-        if not match.empty:
-            card_type = match.iloc[0]['Card Type']
-            issuer = match.iloc[0]['Issuer']
-            card_id = match.iloc[0]['card_id']
-            # Lookup categories for this card_id
-            cat_rows = card_categories_df[card_categories_df['card_id'] == card_id]
-            categories = ', '.join(pd.Series(cat_rows['category']).unique()) if not cat_rows.empty else ''
-            # Lookup tier by tier description (result.tier_description)
-            tier_row = tiers_df[(tiers_df['card_id'] == card_id) & (tiers_df['Description'] == result.tier_description)]
-            if tier_row.empty:
-                # fallback: if only one tier, use it
-                tier_row = tiers_df[tiers_df['card_id'] == card_id]
-            if not tier_row.empty:
-                tier_id = tier_row.iloc[0]['tier_id']
-                min_spend = tier_row.iloc[0]['Min Spend']
-                # Find max cap for this tier in rates_df
-                tier_rates = rates_df[rates_df['tier_id'] == tier_id]
-                cap_values = pd.Series(tier_rates['Cap Amount']).dropna().unique()
-                if len(cap_values) > 0:
-                    # Use the max cap value for display
-                    cap = max(cap_values)
         data.append({
             'Card Name': result.card_name,
             'Tier': result.tier_description,
@@ -80,7 +100,7 @@ def convert_results_to_dataframe(results: list, cards_df: pd.DataFrame, card_cat
             'Cap Reached': result.cap_reached,
             'Cap Difference': result.cap_difference,
             'Min Spend Met': result.min_spend_met,
-            'Details': result.details,
+            'Details': '; '.join(result.details) if result.details else '',
             'Card Type': card_type,
             'Issuer': issuer,
             'Categories': categories,
@@ -93,40 +113,66 @@ def convert_results_to_dataframe(results: list, cards_df: pd.DataFrame, card_cat
 
 
 def main():
-    st.title("🏆Singapore Credit Card Reward Optimizer (Beta)")
+    st.header("🏆Singapore Credit Card Reward Optimizer (Beta)")
 
     # Initialize services
-    data_loader = get_data_loader()
-    calculator = get_reward_calculator()
+    card_loader = get_card_loader()
+    rewards_service = get_rewards_service()
 
     try:
-        # Load credit card data
-        cards_df, tiers_df, rates_df, categories_df = data_loader.load_credit_card_data()
+        # Load credit card data with better naming (cached)
+        with st.spinner("Loading card data..."):
+            available_cards, card_tiers, reward_rates, card_categories = card_loader.load_all_card_data()
 
         # Sidebar spending inputs and filters
         user_spending_data, miles_to_sgd_rate, miles_value_cents = create_spending_inputs()
-        selected_card_types = create_filters(cards_df)
+        selected_card_types = create_filters(available_cards)
 
-        # Convert spending data to model
+        # Convert spending data to model with caching
         spending_model = convert_spending_to_model(user_spending_data)
 
-        # Filter cards based on user selection
-        filtered_cards_df = cards_df[cards_df['Card Type'].isin(
+        # Filter cards based on user selection with better naming
+        filtered_cards = available_cards[available_cards['Card Type'].isin(
             selected_card_types)]
+        if not filtered_cards.empty:
+            selected_cards = filtered_cards.copy()
+            if not isinstance(selected_cards, pd.DataFrame):
+                selected_cards = pd.DataFrame(selected_cards)
+        else:
+            selected_cards = pd.DataFrame()
 
-        # Calculate rewards for filtered cards only
-        all_results = calculator.calculate_filtered_cards_rewards(filtered_cards_df, spending_model, miles_to_sgd_rate)
+        # Calculate rewards for selected cards only with optimized batch processing
+        with st.spinner("Calculating rewards..."):
+            all_results = rewards_service.calculate_filtered_cards_rewards(
+                selected_cards, spending_model, miles_to_sgd_rate)
 
-        # Convert results to DataFrame for display
-        all_cards_results_df = convert_results_to_dataframe(all_results, cards_df, categories_df, tiers_df, rates_df)
+        # Convert results to DataFrame for display with better naming and caching
+        card_results = convert_results_to_dataframe(
+            all_results, available_cards, card_categories, card_tiers, reward_rates)
 
-        # Get top cards for summary (from filtered results)
-        top_cards = calculator.get_top_cards_from_results(all_results, limit=10)
-        best_tier_per_card_df = convert_results_to_dataframe(top_cards, cards_df, categories_df, tiers_df, rates_df)
+        # Get top cards for summary (from filtered results) - reuse existing results
+        top_cards = rewards_service.get_top_cards_from_results(
+            all_results, limit=10)
+        top_cards_df = convert_results_to_dataframe(
+            top_cards, available_cards, card_categories, card_tiers, reward_rates)
+
+        # Calculate combination results for summary dashboard with caching
+        combinations_df = None
+        if not selected_cards.empty and len(selected_cards) >= 2:
+            try:
+                with st.spinner("Calculating optimal combinations..."):
+                    card_combinations_results = rewards_service.find_best_card_combinations(
+                        selected_cards, user_spending_data, miles_to_sgd_rate, card_results
+                    )
+                    if card_combinations_results:
+                        combinations_df = pd.DataFrame(card_combinations_results)
+                        combinations_df = combinations_df.sort_values('Monthly Reward', ascending=False)
+            except Exception as e:
+                print(f"Error calculating combinations for summary: {e}")
 
         # Add summary dashboard
         create_summary_dashboard(
-            user_spending_data, best_tier_per_card_df, miles_value_cents)
+            user_spending_data, top_cards_df, miles_value_cents, combinations_df)
 
         # Card analysis tabs
         single_card_tab, combination_analysis_tab = st.tabs([
@@ -137,8 +183,8 @@ def main():
         # render single card tab
         with single_card_tab:
             render_single_card_component(
-                best_cards_summary_df=best_tier_per_card_df,
-                detailed_results_df=all_cards_results_df,
+                best_cards_summary_df=top_cards_df,
+                detailed_results_df=card_results,
                 user_spending_data=user_spending_data,
                 miles_value_cents=miles_value_cents
             )
@@ -146,9 +192,9 @@ def main():
         # render multi-card tab
         with combination_analysis_tab:
             render_combination_component(
-                filtered_cards_df=filtered_cards_df,
-                best_single_cards_df=best_tier_per_card_df,
-                detailed_results_df=all_cards_results_df,
+                selected_cards_df=selected_cards,
+                best_single_cards_df=top_cards_df,
+                card_results_df=card_results,
                 user_spending_data=user_spending_data,
                 miles_to_sgd_rate=miles_to_sgd_rate,
                 miles_value_cents=miles_value_cents
@@ -156,7 +202,8 @@ def main():
 
     except Exception as e:
         st.error(f"Error loading application: {e}")
-        st.info("Please check that all data files are present in the data/ directory.")
+        st.info(
+            "Please check that all data files are present in the cardData/ directory.")
 
 
 if __name__ == "__main__":

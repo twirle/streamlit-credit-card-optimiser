@@ -29,7 +29,6 @@ class CardTier:
 
 @dataclass
 class CategoryRate:
-    rate_id: int
     tier_id: int
     category: str
     rate_value: float
@@ -122,7 +121,7 @@ def validate_credit_card_data(cards_df: pd.DataFrame, tiers_df: pd.DataFrame,
                               rates_df: pd.DataFrame, categories_df: pd.DataFrame) -> bool:
     required_cards_columns = ['card_id', 'name', 'issuer', 'card_type']
     required_tiers_columns = ['tier_id', 'card_id', 'min_spend']
-    required_rates_columns = ['rate_id', 'tier_id', 'category', 'rate_value', 'rate_type']
+    required_rates_columns = ['tier_id', 'category', 'rate_value', 'rate_type']
     required_categories_columns = ['card_id', 'category']
 
     for col in required_cards_columns:

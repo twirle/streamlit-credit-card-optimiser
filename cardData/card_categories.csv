@@ -3,7 +3,11 @@ card_id,category
 1,Transport
 1,Streaming
 1,Other
-2,All
+2,Dining
+2,Groceries
+2,Departmental
+2,Petrol
+2,Retail
 3,Dining
 3,Groceries
 3,Petrol

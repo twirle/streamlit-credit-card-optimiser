@@ -1,0 +1,23 @@
+card_id,name,issuer,card_type
+1,SC Smart,Standard Chartered,Cashback
+2,SC Simply Cash,Standard Chartered,Cashback
+3,Citi Cash Back,Citibank,Cashback
+4,OCBC 365,OCBC,Cashback
+5,DBS Live Fresh,DBS,Cashback
+6,HSBC Live+,HSBC,Cashback
+7,SC Journey,Standard Chartered,Miles
+8,Citi PremierMiles,Citibank,Miles
+9,Citi Rewards,Citibank,Miles
+10,Citi Prestige,Citibank,Miles
+11,OCBC Rewards,OCBC,Miles
+12,DBS Women's,DBS,Miles
+13,DBS Women's World,DBS,Miles
+14,HSBC Revolution,HSBC,Miles
+15,UOB Lady's,UOB,Miles
+16,UOB Platinum Visa,UOB,Miles
+17,UOB Visa Signature,UOB,Miles
+18,UOB PRVI Miles,UOB,Miles
+19,UOB KrisFlyer,UOB,Miles
+20,Maybank Horizon Visa Signature,Maybank,Miles
+21,Maybank World Mastercard,Maybank,Miles
+22,UOB Absolute,UOB,Cashback
