@@ -1,25 +1,26 @@
-﻿Name,Issuer,Type,Min Spend,Cap,Dining Rate,Groceries Rate,Petrol Rate,Transport Rate,Streaming Rate,Entertainment Rate,Utilities Rate,Retail Rate,Departmental Rate,Online Rate,Travel Rate,Overseas Rate,Base Rate,Categories,Source
-SC Smart,Standard Chartered,Cashback,1500,,10,,,10,10,,,,,,,,1,"Dining, Streaming, Transport",https://www.sc.com/sg/credit-cards/
-SC Smart,Standard Chartered,Cashback,800,,8,,,8,8,,,,,,,,1,"Dining, Streaming, Transport",https://www.sc.com/sg/credit-cards/
-SC Simply Cash,Standard Chartered,Cashback,,,,,,,,,,,,,,,1.5,,https://www.sc.com/sg/credit-cards/
-Citi Cash Back,Citibank,Cashback,800,80,6,6,8,,,,,,,,,,0.2,"Dining, Groceries, Petrol, Private Commute",https://www1.citibank.com.sg/credit-cards/cashback/citi-cash-back-card
-OCBC 365,OCBC,Cashback,1600,160,5,3,6,3,3,,3,,,,,,0.25,"Dining, Groceries, Petrol, Streaming, Transport, Utilities",https://www.ocbc.com/personal-banking/cards/365-cashback-credit-card
-OCBC 365,OCBC,Cashback,800,80,5,3,6,3,3,,3,,,,,,0.25,"Dining, Groceries, Petrol, Streaming, Transport, Utilities",https://www.ocbc.com/personal-banking/cards/365-cashback-credit-card
-DBS Live Fresh,DBS,Cashback,800,70,,,,6,,,,,,,,3.25,0.3,"FX, Overseas, Transport",https://www.dbs.com.sg/personal/cards/credit-cards/live-fresh-dbs-visa-paywave-platinum-card
-HSBC Live+,HSBC,Cashback,600,62.5,8,,,,8,,,8,,,,,0,"Dining, Retail, Streaming",https://www.hsbc.com.sg/credit-cards/products/liveplus/#fn-cards-liveplus-minimum
-HSBC Live+,HSBC,Cashback,,62.5,5,,,,5,,,5,,,,,0,"Dining, Retail, Streaming",https://www.hsbc.com.sg/credit-cards/products/liveplus/#fn-cards-liveplus-minimum
-SC Journey,Standard Chartered,Miles,,1000,3,3,,3,,,,,,,,2,1.2,"Dining, Groceries, Transport",https://www.sc.com/sg/credit-cards/journey-credit-card/
-Citi Prestige,Citibank,Miles,,,,,,,,,,,,,,2,1.3,Overseas,https://www.citibank.com.sg/credit-cards/rewards/prestige-credit-card/?icid=SGCCURHENCTCDCALM&lid=SGENCGGCGMITLAllCreditCards
-Citi Rewards,Citibank,Miles,,,,,,,,,,4,,4,,,0.4,"Online, Retail",https://www.citibank.com.sg/credit-cards/rewards/citi-rewards-card/
-Citi PremierMiles,Citibank,Miles,,,,,,,,,,,,,10,2.2,1.2,"FX, Travel",https://www1.citibank.com.sg/credit-cards/travel/premiermiles-card
-OCBC Rewards,OCBC,Miles,,1110,,,,,,,,6,6,4,,,,"Online, Retail",https://www.ocbc.com/personal-banking/cards/rewards-card
-DBS Women’s World,DBS,Miles,,1500,,,,,,,,,,4,,1.2,0.4,Online,https://www.dbs.com.sg/personal/cards/credit-cards/dbs-woman-mastercard-card
-DBS Women’s,DBS,Miles,,1000,,,,,,,,,,2,,,0.4,Online,https://www.dbs.com.sg/personal/cards/credit-cards/dbs-woman-mastercard-card
-HSBC Revolution,HSBC,Miles,,,,,,4,,,,,,4,,,0.4,"Online, Transport",https://www.hsbc.com.sg/credit-cards/products/revolution/
-UOB KrisFlyer,UOB,Miles,1000,,2.4,,,2.4,,,,,,2.4,2.4,,1.2,"Dining, Online, Transport, Travel",https://www.uob.com.sg/personal/cards/travel/krisflyer-card.page
-UOB PRVI Miles,UOB,Miles,,,,,,,,,,,,3,8,5,1.4,"Online, Overseas, Travel",https://www.uob.com.sg/personal/cards/travel/prvi-miles-card.page
-UOB Visa Signature,UOB,Miles,1000,2000,,,4,,,,,4,,,,4,0.4,"Overseas, Petrol, Retail",https://www.uob.com.sg/personal/cards/rewards/visa-signature-card.page
-UOB Platinum Visa,UOB,Miles,,1110,,,,,,,,4,,4,,,0.4,"Online, Retail",https://www.uob.com.sg/personal/cards/rewards/preferred-platinum-visa-card.page
-UOB Lady’s,UOB,Miles,,1000,4,,,4,,4,,4,,,4,,0.4,"Dining, Entertainment, Retail, Travel",https://www.uob.com.sg/personal/cards/rewards/ladys-card/index.page
-Maybank World Mastercard,Maybank,Miles,800,,4,,4,,,,,,,,,2.8,0.4,"Dining, Overseas, Petrol",https://www.maybank2u.com.sg/en/personal/cards/credit/maybank-world-mastercard.page
-Maybank Horizon Visa Signature,Maybank,Miles,800,,1.2,1.2,1.2,1.2,,,0.56,1.2,,,2.8,2.8,0.4,"Overseas, Travel",https://www.maybank2u.com.sg/en/personal/cards/credit/maybank-horizon-visa-signature-card.page
+﻿Name,Issuer,Type,Tier,Min Spend,Cap,Dining Rate,Groceries Rate,Petrol Rate,Transport Rate,Streaming Rate,Entertainment Rate,Utilities Rate,Retail Rate,Online Rate,Travel Rate,Overseas Rate,Base Rate,Income Requirement,Categories,Source
+DBS Live Fresh,DBS,Cashback,,800,70,,,,6,,,,,,,3.25,0.3,30000,"FX, Overseas, Transport",https://www.dbs.com.sg/personal/cards/credit-cards/live-fresh-dbs-visa-paywave-platinum-card
+Citi Cash Back,Citibank,Cashback,,800,80,6,6,8,,,,,,,,,0.2,30000,"Dining, Groceries, Petrol, Private Commute",https://www1.citibank.com.sg/credit-cards/cashback/citi-cash-back-card
+OCBC 365,OCBC,Cashback,Low,800,80,5,3,6,3,3,,3,,,,,0.25,30000,"Dining, Groceries, Petrol, Streaming, Transport, Utilities",https://www.ocbc.com/personal-banking/cards/365-cashback-credit-card
+OCBC 365,OCBC,Cashback,High,1600,160,5,3,6,3,3,,3,,,,,0.25,30000,"Dining, Groceries, Petrol, Streaming, Transport, Utilities",https://www.ocbc.com/personal-banking/cards/365-cashback-credit-card
+UOB Absolute,UOB,Cashback,,,,,,,,,,,,,,,1.7,30000,,https://www.uob.com.sg/personal/cards/cashback/absolute-cashback-card.page
+HSBC Live+,HSBC,Cashback,Low,600,62.5,5,,5,,5,5,,5,,,,0,30000,"Dining, Retail, Streaming",https://www.hsbc.com.sg/credit-cards/products/liveplus/#fn-cards-liveplus-minimum
+HSBC Live+,HSBC,Cashback,High,1000,62.5,8,,8,,8,8,,8,,,,0,30000,"Dining, Retail, Streaming",https://www.hsbc.com.sg/credit-cards/products/liveplus/#fn-cards-liveplus-minimum
+SC Smart,Standard Chartered,Cashback,Low,800,,8,,,8,8,,,,,,,1,30000,"Dining, Streaming, Transport",https://www.sc.com/sg/credit-cards/
+SC Smart,Standard Chartered,Cashback,High,1500,,10,,,10,10,,,,,,,1,30000,"Dining, Streaming, Transport",https://www.sc.com/sg/credit-cards/
+SC Simply Cash,Standard Chartered,Cashback,,,,,,,,,,,,,,,1.5,30000,,https://www.sc.com/sg/credit-cards/
+Citi Prestige,Citibank,Miles,,,,,,,,,,,,,,2,1.3,120000,Overseas,https://www.citibank.com.sg/credit-cards/rewards/prestige-credit-card/?icid=SGCCURHENCTCDCALM&lid=SGENCGGCGMITLAllCreditCards
+Citi Rewards,Citibank,Miles,,,,,,,,,,,4,4,,,0.4,30000,"Online, Retail",https://www.citibank.com.sg/credit-cards/rewards/citi-rewards-card/
+Citi PremierMiles,Citibank,Miles,,,,,,,,,,,,,10,2.2,1.2,30000,"FX, Travel",https://www1.citibank.com.sg/credit-cards/travel/premiermiles-card
+OCBC Rewards,OCBC,Miles,,,1110,,,,,,,,6,4,,,,30000,"Online, Retail",https://www.ocbc.com/personal-banking/cards/rewards-card
+DBS Women’s,DBS,Miles,,,1000,,,,,,,,,2,,,0.4,30000,Online,https://www.dbs.com.sg/personal/cards/credit-cards/dbs-woman-mastercard-card
+DBS Women’s World,DBS,Miles,,,1500,,,,,,,,,4,,1.2,0.4,80000,Online,https://www.dbs.com.sg/personal/cards/credit-cards/dbs-woman-mastercard-card
+HSBC Revolution,HSBC,Miles,,,,,,,4,,,,,4,,,0.4,30000,"Online, Transport",https://www.hsbc.com.sg/credit-cards/products/revolution/
+Maybank World Mastercard,Maybank,Miles,,800,,4,,4,,,,,,,,2.8,0.4,30000,"Dining, Overseas, Petrol",https://www.maybank2u.com.sg/en/personal/cards/credit/maybank-world-mastercard.page
+Maybank Horizon Visa Signature,Maybank,Miles,,800,,1.2,1.2,1.2,1.2,,,0.56,1.2,,2.8,2.8,0.4,30000,"Overseas, Travel",https://www.maybank2u.com.sg/en/personal/cards/credit/maybank-horizon-visa-signature-card.page
+SC Journey,Standard Chartered,Miles,,,1000,3,3,,3,,,,,,,2,1.2,30000,"Dining, Groceries, Transport",https://www.sc.com/sg/credit-cards/journey-credit-card/
+UOB KrisFlyer,UOB,Miles,,1000,,2.4,,,2.4,,,,,2.4,2.4,,1.2,30000,"Dining, Online, Transport, Travel",https://www.uob.com.sg/personal/cards/travel/krisflyer-card.page
+UOB Lady’s,UOB,Miles,,,1000,4,,,4,,4,,4,,4,,0.4,30000,"Dining, Entertainment, Retail, Travel",https://www.uob.com.sg/personal/cards/rewards/ladys-card/index.page
+UOB PRVI Miles,UOB,Miles,,,,,,,,,,,,3,8,5,1.4,30000,"Online, Overseas, Travel",https://www.uob.com.sg/personal/cards/travel/prvi-miles-card.page
+UOB Platinum Visa,UOB,Miles,,,1110,,,,,,,,4,4,,,0.4,30000,"Online, Retail",https://www.uob.com.sg/personal/cards/rewards/preferred-platinum-visa-card.page
+UOB Visa Signature,UOB,Miles,,1000,2000,,,4,,,,,4,,,4,0.4,30000,"Overseas, Petrol, Retail",https://www.uob.com.sg/personal/cards/rewards/visa-signature-card.page

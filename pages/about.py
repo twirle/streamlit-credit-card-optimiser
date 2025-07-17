@@ -1,10 +1,5 @@
 import streamlit as st
 import pandas as pd
-from components.inputs.spending_inputs import initialize_spending_session_state
-from services.data import get_card_loader
-
-# initialise session state for persistance of spending data
-initialize_spending_session_state()
 
 st.title("About Credit Card Optimiser")
 st.markdown("""
@@ -14,58 +9,9 @@ st.markdown("""
     """)
 
 # Get card data using the card loader service
-card_loader = get_card_loader()
 
-try:
-    # Get cards for display
-    cards_df = card_loader.get_cards_for_display()
+# Display table of cashback and miles cards in two tabs
 
-    if not cards_df.empty:
-        st.markdown("#### Supported Cards:")
-
-        # Create tabs for different card types
-        tab1, tab2 = st.tabs(["Cashback Cards", "Miles Cards"])
-
-        with tab1:
-            cashback_cards = card_loader.get_cards_by_type('Cashback')
-            if not cashback_cards.empty:
-                # Display as a simple table with consistent column widths
-                display_df = cashback_cards[['Issuer', 'Card Name']].sort_values(
-                    ['Issuer', 'Card Name'])
-                st.dataframe(
-                    display_df,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "Issuer": st.column_config.TextColumn("Issuer", width="medium"),
-                        "Card Name": st.column_config.TextColumn("Card Name", width="large")
-                    }
-                )
-            else:
-                st.info("No cashback cards found.")
-
-        with tab2:
-            miles_cards = card_loader.get_cards_by_type('Miles')
-            if not miles_cards.empty:
-                # Display as a simple table with consistent column widths
-                display_df = miles_cards[['Issuer', 'Card Name']].sort_values(
-                    ['Issuer', 'Card Name'])
-                st.dataframe(
-                    display_df,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "Issuer": st.column_config.TextColumn("Issuer", width="medium"),
-                        "Card Name": st.column_config.TextColumn("Card Name", width="large")
-                    }
-                )
-            else:
-                st.info("No miles cards found.")
-    else:
-        st.error("No card data available.")
-
-except Exception as e:
-    st.error(f"Error loading card data: {e}")
 
 st.markdown("""
     #### Note:
