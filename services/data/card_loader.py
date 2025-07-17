@@ -18,10 +18,12 @@ def _to_float(val):
             return None
     return None
 
+
 def _to_str(val):
     if val is not None and not pd.isna(val):
         return str(val)
     return ""
+
 
 def load_cards_and_models() -> List[CreditCard]:
     df = pd.read_csv(CARD_CSV_PATH)
