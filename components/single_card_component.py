@@ -3,7 +3,7 @@ import pandas as pd
 from collections import namedtuple
 from services.data.card_loader import load_cards_and_models
 from components.breakdown_format_utils import format_breakdown_df, get_ranked_selectbox_options
-from components.card_calculation_utils import calculate_uob_ladys_rewards
+from components.card_calculation_utils import calculate_uob_ladys_rewards, calculate_trust_cashback_rewards
 
 SingleCardRewardsResult = namedtuple('SingleCardRewardsResult', [
     'summary_df', 'breakdown_dict']
@@ -19,9 +19,13 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
     reward = 0
     details = []
     # Special logic for UOB Lady's
-    if card.name == "UOB Lady’s":
+    if "UOB Lady" in card.name:
         reward, details = calculate_uob_ladys_rewards(
             user_spending, miles_to_sgd_rate, tier)
+    # Special logic for Trust Cashback
+    elif card.name == "Trust Cashback":
+        reward, details = calculate_trust_cashback_rewards(
+            user_spending, tier)
     elif min_spend_met:
         for cat, amount in user_spending.items():
             if cat == 'total':
@@ -52,11 +56,7 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
                 'Rate': rate,
                 'Reward': amount * (rate / 100) if card.card_type.lower() == 'cashback' else amount * rate * miles_to_sgd_rate
             })
-    cap_reached = False
-    if tier.cap is not None and reward > tier.cap:
-        reward = tier.cap
-        cap_reached = True
-    return reward, details, min_spend_met, cap_reached, tier
+    return reward, details, min_spend_met, False, tier
 
 
 def build_summary_dataframe(results):
@@ -158,10 +158,18 @@ def single_card_rewards_and_breakdowns(user_spending, miles_to_sgd_rate=0.02):
                 best_tier = used_tier
                 best_details = {
                     'details': details,
-                    'cap_reached': cap_reached,
+                    'cap_reached': False,  # set after cap check
                     'min_spend_met': min_spend_met
                 }
                 best_reward_rate = reward_rate
+        
+        # Apply cap after selecting the best tier
+        cap_reached = False
+        if best_tier and best_tier.cap is not None and best_reward > best_tier.cap:
+            best_reward = best_tier.cap
+            cap_reached = True
+            best_details['cap_reached'] = cap_reached
+        
         results.append({
             'Card Name': card.name,
             'Card Type': card.card_type,

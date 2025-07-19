@@ -138,6 +138,88 @@ def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles
 
     breakdown1 = postprocess_uob_ladys(card1, breakdown1)
     breakdown2 = postprocess_uob_ladys(card2, breakdown2)
+    
+    # Post-process Trust Cashback breakdowns
+    def postprocess_trust_cashback(card, breakdown):
+        if card.name != "Trust Cashback":
+            return breakdown
+        
+        # Define category groupings for Trust Cashback
+        category_groups = {
+            'dining': ['dining'],
+            'shopping': ['retail', 'online', 'groceries'],
+            'travel': ['travel'],
+            'transport': ['transport', 'petrol'],
+            'entertainment': ['entertainment', 'streaming']
+        }
+        
+        # Calculate total spending for each group
+        group_totals = {}
+        for group_name, categories in category_groups.items():
+            group_totals[group_name] = sum(row['Amount'] for row in breakdown if row['Category'].strip().lower() in categories)
+        
+        # Find the group with highest spending
+        max_group = max(group_totals.keys(), key=lambda g: group_totals[g])
+        
+        # Get the high rate from the breakdown (should be the same for all categories)
+        high_rate = None
+        for row in breakdown:
+            if row['Rate'] > 1.0:  # Base rate is 1%
+                high_rate = row['Rate']
+                break
+        
+        if high_rate is None:
+            high_rate = 5.0  # Default fallback
+        
+        # Check if minimum spend is met in bonus categories
+        # Minimum spend includes ALL bonus categories, not just the highest one
+        all_bonus_spend = sum(group_totals.values())  # Total spending across all bonus categories
+        
+        # Get the tier information to check minimum spend requirement
+        # matches tier to rate we're using
+        from services.data.card_loader import load_cards_and_models
+        cards = load_cards_and_models()
+        card_obj = next((c for c in cards if c.name == card.name), None)
+        min_spend_met = False
+        
+        if card_obj:
+            for tier in card_obj.tiers:
+                # Check if this tier has the high rate we're using
+                tier_high_rate = None
+                for rate in tier.reward_rates.values():
+                    if rate > 1.0:  # Base rate is 1%
+                        tier_high_rate = rate
+                        break
+                
+                if tier_high_rate == high_rate:
+                    # This is the tier we're using, check its minimum spend
+                    min_spend_met = (tier.min_spend is None) or (all_bonus_spend >= tier.min_spend)
+                    break
+        
+        new_breakdown = []
+        for row in breakdown:
+            cat_lc = row['Category'].strip().lower()
+            
+            # Determine which group this category belongs to
+            category_group = None
+            for group_name, categories in category_groups.items():
+                if cat_lc in categories:
+                    category_group = group_name
+                    break
+            
+            # Apply rate based on group and minimum spend requirement
+            if min_spend_met and category_group == max_group:
+                rate = high_rate
+            else:
+                rate = 1.0  # Base rate for other categories or if min spend not met
+                
+            reward = row['Amount'] * (rate / 100)  # Convert percentage to decimal
+            new_breakdown.append({**row, 'Rate': rate, 'Reward': reward})
+        
+        return new_breakdown
+    
+    breakdown1 = postprocess_trust_cashback(card1, breakdown1)
+    breakdown2 = postprocess_trust_cashback(card2, breakdown2)
     reward1 = sum(row['Reward'] for row in breakdown1)
     reward2 = sum(row['Reward'] for row in breakdown2)
     total_combined_reward = reward1 + reward2
