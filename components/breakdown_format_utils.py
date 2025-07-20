@@ -19,7 +19,7 @@ category_icons = {
 }
 
 
-def format_breakdown_df(breakdown, card_type):
+def format_breakdown_df(breakdown, card_type, capped_reward=None, capped_rate=None):
     breakdown_df = pd.DataFrame(list(breakdown))
     if not breakdown_df.empty and isinstance(breakdown_df, pd.DataFrame):
         if 'Reward' in breakdown_df.columns:
@@ -40,27 +40,46 @@ def format_breakdown_df(breakdown, card_type):
             breakdown_df.loc[:, 'Amount'] = breakdown_df['Amount'].apply(
                 lambda x: f"${x:,.2f}")
         if 'Rate' in breakdown_df.columns:
-            if card_type == 'cashback':
-                breakdown_df['Rate'] = breakdown_df['Rate'].astype('object')
-                breakdown_df.loc[:, 'Rate'] = breakdown_df['Rate'].apply(
-                    lambda x: f"{x:.2f}%")
-            elif card_type == 'miles':
-                breakdown_df['Rate'] = breakdown_df['Rate'].astype('object')
-                breakdown_df.loc[:, 'Rate'] = breakdown_df['Rate'].apply(
-                    lambda x: f"{x:.2f} mpd")
-            else:
-                breakdown_df['Rate'] = breakdown_df['Rate'].astype('object')
-                breakdown_df.loc[:, 'Rate'] = breakdown_df['Rate'].astype(
-                    'string')
+            breakdown_df['Rate'] = breakdown_df['Rate'].astype('object')
+            def format_rate(x, card_type=card_type):
+                try:
+                    if isinstance(x, str) and not x.replace('.', '', 1).isdigit():
+                        return x
+                    x_float = float(x)
+                    if card_type == 'cashback':
+                        return f"{x_float:.2f}%"
+                    elif card_type == 'miles':
+                        return f"{x_float:.2f} mpd"
+                    else:
+                        return str(x)
+                except Exception:
+                    return str(x)
+            breakdown_df.loc[:, 'Rate'] = breakdown_df['Rate'].apply(format_rate)
         if 'Reward' in breakdown_df.columns:
             breakdown_df['Reward'] = breakdown_df['Reward'].astype('object')
             breakdown_df.loc[:, 'Reward'] = breakdown_df['Reward'].apply(
                 lambda x: f"${x:,.2f}")
             total_reward = sum([row['Reward'] for row in breakdown if isinstance(
                 row, dict) and 'Reward' in row])
+            # Calculate total amount spent (exclude total row itself)
+            total_amount = sum([row['Amount'] for row in breakdown if isinstance(row, dict) and 'Amount' in row])
             total_row = {col: '' for col in breakdown_df.columns}
             total_row['Category'] = f"{category_icons.get('total', '🧮')} Total"
-            total_row['Reward'] = f"${total_reward:,.2f}"
+            total_row['Amount'] = f"${total_amount:,.2f}"
+            
+            # Show both uncapped and capped reward if applicable
+            if capped_reward is not None and total_reward > capped_reward:
+                total_row['Reward'] = f"${total_reward:,.2f} (${capped_reward:,.2f})"
+                if capped_rate is not None:
+                    uncapped_rate = (total_reward / total_amount * 100) if total_amount > 0 else 0
+                    total_row['Rate'] = f"{uncapped_rate:.2f}% ({capped_rate:.2f}%)"
+                else:
+                    uncapped_rate = (total_reward / total_amount * 100) if total_amount > 0 else 0
+                    total_row['Rate'] = f"{uncapped_rate:.2f}%"
+            else:
+                total_row['Reward'] = f"${total_reward:,.2f}"
+                uncapped_rate = (total_reward / total_amount * 100) if total_amount > 0 else 0
+                total_row['Rate'] = f"{uncapped_rate:.2f}%"
             breakdown_df = pd.concat(
                 [breakdown_df, pd.DataFrame([total_row])], ignore_index=True)
     return breakdown_df

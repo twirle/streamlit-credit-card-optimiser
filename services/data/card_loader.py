@@ -6,7 +6,7 @@ from typing import List, Dict
 CARD_CSV_PATH = Path(__file__).parent.parent.parent / "credit_cards.csv"
 
 CATEGORY_COLUMNS = [
-    "Dining Rate", "Groceries Rate", "Petrol Rate", "Transport Rate", "Streaming Rate", "Entertainment Rate", "Utilities Rate", "Retail Rate", "Departmental Rate", "Online Rate", "Travel Rate", "Overseas Rate"
+    "Dining Rate", "Groceries Rate", "Petrol Rate", "Transport Rate", "SimplyGo Rate", "Streaming Rate", "Entertainment Rate", "Utilities Rate", "Retail Rate", "Departmental Rate", "Online Rate", "Travel Rate", "FCY Rate"
 ]
 
 

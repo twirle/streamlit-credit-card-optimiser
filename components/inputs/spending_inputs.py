@@ -7,19 +7,20 @@ def initialize_spending_session_state():
         st.session_state.user_spending_data = {
             'dining': 200,
             'groceries': 250,
-            'petrol': 0,
-            'transport': 85,
-            'streaming': 0,
-            'entertainment': 50,
+            'transport': 50,
+            'simplygo': 75,
+            'streaming': 25,
+            'entertainment': 25,
             'utilities': 0,
-            'online': 200,
-            'travel': 0,
-            'overseas': 100,
-            'retail': 150,
+            'petrol': 0,
+            'retail': 100,
+            'online': 250,
+            'travel': 100,
+            'fcy': 0,
         }
 
     if 'miles_value_cents' not in st.session_state:
-        st.session_state.miles_value_cents = 2.0
+        st.session_state.miles_value_cents = 1.5
 
     if 'miles_to_sgd_rate' not in st.session_state:
         st.session_state.miles_to_sgd_rate = 0.02
@@ -55,28 +56,28 @@ def create_food_daily_inputs():
             groceries = st.number_input(
                 "Groceries", 0, 2000, st.session_state.user_spending_data['groceries'], 25, key="groceries")
         with col2:
-            petrol = st.number_input(
-                "Petrol", 0, 1000, st.session_state.user_spending_data['petrol'], 25, key="petrol")
             transport = st.number_input(
                 "Transport", 0, 500, st.session_state.user_spending_data['transport'], 25, key="transport")
-
-    return dining, groceries, petrol, transport
+            simplygo = st.number_input(
+                "SimplyGo", 0, 500, st.session_state.user_spending_data['simplygo'], 25, key="simplygo")
+    return dining, groceries, transport, simplygo
 
 
 def create_entertainment_utilities_inputs():
-    """Create entertainment and utilities spending inputs"""
+    """Create entertainment, bills, and petrol spending inputs"""
     with st.sidebar.expander("🎬 Entertainment & Bills", expanded=True):
         col3, col4 = st.columns(2)
         with col3:
             streaming = st.number_input(
                 "Streaming", 0, 200, st.session_state.user_spending_data['streaming'], 5, key="streaming")
-            utilities = st.number_input(
-                "Utilities", 0, 500, st.session_state.user_spending_data['utilities'], 25, key="utilities")
+            petrol = st.number_input(
+                "Petrol", 0, 1000, st.session_state.user_spending_data['petrol'], 25, key="petrol")
         with col4:
             entertainment = st.number_input(
                 "Entertainment", 0, 500, st.session_state.user_spending_data['entertainment'], 25, key="entertainment")
-
-    return streaming, entertainment, utilities
+            utilities = st.number_input(
+                "Utilities", 0, 500, st.session_state.user_spending_data['utilities'], 25, key="utilities")
+    return streaming, entertainment, utilities, petrol
 
 
 def create_shopping_inputs():
@@ -92,18 +93,17 @@ def create_shopping_inputs():
     return retail, online
 
 
-def create_travel_overseas_inputs():
-    """Create travel and other spending inputs"""
-    with st.sidebar.expander("✈️ Travel", expanded=True):
+def create_travel_fcy_inputs():
+    """Create travel and FCY spending inputs"""
+    with st.sidebar.expander("✈️ Travel & FCY", expanded=True):
         col5, col6 = st.columns(2)
         with col5:
             travel = st.number_input(
                 "Travel", 0, 2000, st.session_state.user_spending_data['travel'], 50, key="travel")
         with col6:
-            overseas = st.number_input(
-                "Overseas", 0, 2000, st.session_state.user_spending_data['overseas'], 50, key="overseas")
-
-    return travel, overseas
+            fcy = st.number_input(
+                "FCY", 0, 2000, st.session_state.user_spending_data['fcy'], 50, key="fcy")
+    return travel, fcy
 
 
 def create_spending_summary(total):
@@ -130,15 +130,14 @@ def create_spending_inputs():
     st.sidebar.subheader("💸 Spending Categories")
 
     # Get all spending inputs
-    dining, groceries, petrol, transport = create_food_daily_inputs()
-    streaming, entertainment, utilities = create_entertainment_utilities_inputs()
+    dining, groceries, transport, simplygo = create_food_daily_inputs()
+    streaming, entertainment, utilities, petrol = create_entertainment_utilities_inputs()
     retail, online = create_shopping_inputs()
-    travel, overseas = create_travel_overseas_inputs()
+    travel, fcy = create_travel_fcy_inputs()
 
     # Calculate total
-    total = dining + groceries + petrol + transport + streaming + \
-        entertainment + utilities + online + travel + \
-        overseas + retail
+    total = dining + groceries + petrol + transport + simplygo + streaming + \
+        entertainment + utilities + online + travel + fcy + retail
 
     # Update session state with all values
     st.session_state.user_spending_data.update({
@@ -146,12 +145,13 @@ def create_spending_inputs():
         'groceries': groceries,
         'petrol': petrol,
         'transport': transport,
+        'simplygo': simplygo,
         'streaming': streaming,
         'entertainment': entertainment,
         'utilities': utilities,
         'online': online,
         'travel': travel,
-        'overseas': overseas,
+        'fcy': fcy,
         'retail': retail,
         'total': total
     })

@@ -1,26 +1,54 @@
-def calculate_uob_ladys_rewards(user_spending, miles_to_sgd_rate, tier):
+# Group definitions for UOB Lady's/Lady's Solitaire (shared for single and multi-card logic)
+UOB_LADYS_GROUP_MAP = {
+    'dining': ['dining'],
+    'entertainment': ['entertainment'],
+    'retail': ['retail'],
+    'transport': ['transport', 'simplygo', 'petrol'],
+    'travel': ['travel']
+}
+
+def calculate_uob_ladys_rewards(user_spending, miles_to_sgd_rate, tier, is_solitaire=False):
     """
-    For UOB Lady's: Only one eligible category (dining, entertainment, retail, travel) gets 4 mpd, the rest get 0.4 mpd.
-    The category with the highest user spending is selected for 4 mpd.
+    For UOB Lady's: Only one eligible group (Dining, Entertainment, Retail, Transport, Travel) gets 4 mpd, capped per group. Lady's Solitaire: two groups, each capped.
+    Transport group includes Transport, SimplyGo, Petrol.
     """
-    eligible = ['dining', 'entertainment', 'retail', 'travel']
-    max_cat = max(eligible, key=lambda cat: user_spending.get(cat, 0))
-    reward = 0
+    group_map = UOB_LADYS_GROUP_MAP
+    base_rate = tier.base_rate or 0.4
+    bonus_rate = 4.0
+    cap = tier.cap if tier.cap is not None else float('inf')
+    # Calculate total spend per group
+    group_spend = {g: sum(user_spending.get(cat, 0) for cat in cats) for g, cats in group_map.items()}
+    # Pick top group(s)
+    n_groups = 2 if is_solitaire else 1
+    top_groups = sorted(group_spend, key=lambda g: group_spend[g], reverse=True)[:n_groups]
+    # Track how much of each category is allocated to bonus/base
+    group_bonus_left = {g: min(group_spend[g], cap) for g in top_groups}
     details = []
-    for cat, amount in user_spending.items():
-        if cat == 'total':
-            continue
-        if cat == max_cat:
-            rate = 4.0
-        else:
-            rate = 0.4
-        reward += amount * rate * miles_to_sgd_rate
-        details.append({
-            'Category': cat,
-            'Amount': amount,
-            'Rate': rate,
-            'Reward': amount * rate * miles_to_sgd_rate
-        })
+    reward = 0
+    # For each group
+    for g, cats in group_map.items():
+        for cat in cats:
+            amt = user_spending.get(cat, 0)
+            if amt == 0:
+                continue
+            if g in top_groups:
+                # Allocate up to cap at bonus, rest at base
+                amt_bonus = min(amt, group_bonus_left[g])
+                amt_base = amt - amt_bonus
+                if amt_bonus > 0:
+                    reward_bonus = amt_bonus * bonus_rate * miles_to_sgd_rate
+                    reward += reward_bonus
+                    details.append({'Category': cat, 'Amount': amt_bonus, 'Rate': bonus_rate, 'Reward': reward_bonus})
+                    group_bonus_left[g] -= amt_bonus
+                if amt_base > 0:
+                    reward_base = amt_base * base_rate * miles_to_sgd_rate
+                    reward += reward_base
+                    details.append({'Category': cat, 'Amount': amt_base, 'Rate': base_rate, 'Reward': reward_base})
+            else:
+                # Not a selected group, all at base
+                reward_base = amt * base_rate * miles_to_sgd_rate
+                reward += reward_base
+                details.append({'Category': cat, 'Amount': amt, 'Rate': base_rate, 'Reward': reward_base})
     return reward, details
 
 
@@ -93,4 +121,75 @@ def calculate_trust_cashback_rewards(user_spending, tier):
     
     return reward, details
 
-# Future card-specific calculation functions can be added here. 
+
+def calculate_miles_card_with_bonus_cap(user_spending, miles_to_sgd_rate, tier, bonus_categories):
+    """
+    Generic function for miles cards with a cap on bonus categories.
+    - Applies the bonus rate to the first $cap of spending in the bonus categories (combined).
+    - Applies the base rate to any bonus category spending above the cap.
+    - Applies the base rate to all other categories (uncapped).
+    """
+    base_rate = tier.base_rate or 0
+    cap = tier.cap if tier.cap is not None else float('inf')
+    bonus_rate = None
+    # Assume all bonus categories have the same bonus rate in this tier
+    for cat in bonus_categories:
+        if cat in tier.reward_rates:
+            bonus_rate = tier.reward_rates[cat]
+            break
+    if bonus_rate is None:
+        bonus_rate = base_rate
+    # Calculate total bonus category spend
+    bonus_spending = [(cat, user_spending.get(cat, 0)) for cat in bonus_categories]
+    total_bonus_spend = sum(amt for _, amt in bonus_spending)
+    # How much of the bonus spend is within cap?
+    bonus_within_cap = min(total_bonus_spend, cap)
+    bonus_above_cap = max(total_bonus_spend - cap, 0)
+    # Allocate bonus spend within and above cap proportionally
+    details = []
+    reward = 0
+    # First, handle bonus categories
+    if total_bonus_spend > 0:
+        for cat, amt in bonus_spending:
+            if amt == 0:
+                continue
+            # Proportion of this category's spend within cap
+            if bonus_within_cap > 0:
+                prop_within = min(amt, bonus_within_cap) / total_bonus_spend
+                amt_within = prop_within * bonus_within_cap
+            else:
+                amt_within = 0
+            amt_above = amt - amt_within
+            # Bonus rate for within cap, base rate for above cap
+            reward_within = amt_within * bonus_rate * miles_to_sgd_rate
+            reward_above = amt_above * base_rate * miles_to_sgd_rate
+            reward += reward_within + reward_above
+            if amt_within > 0:
+                details.append({
+                    'Category': cat,
+                    'Amount': amt_within,
+                    'Rate': bonus_rate,
+                    'Reward': reward_within
+                })
+            if amt_above > 0:
+                details.append({
+                    'Category': cat,
+                    'Amount': amt_above,
+                    'Rate': base_rate,
+                    'Reward': reward_above
+                })
+    # Now, handle all other categories
+    for cat, amt in user_spending.items():
+        if cat == 'total' or cat in bonus_categories:
+            continue
+        if amt == 0:
+            continue
+        reward_cat = amt * base_rate * miles_to_sgd_rate
+        reward += reward_cat
+        details.append({
+            'Category': cat,
+            'Amount': amt,
+            'Rate': base_rate,
+            'Reward': reward_cat
+        })
+    return reward, details

@@ -1,0 +1,195 @@
+MCC Code,Category,Description,Example
+0742,Retail,Veterinary Services,Animal hospitals or pet clinics
+0763,Retail,Agricultural Cooperatives,Farming cooperatives or supply stores
+3000-3350,Travel,Airlines (various carriers),Singapore Airlines or Delta Air Lines
+3351-3500,Travel,Car Rental Agencies,Hertz or Avis
+3501-3999,Travel,Hotels and Lodging,Marriott or Hilton hotels
+4011,Transport,Railroads,Freight or passenger rail services
+4111,Transport,Local and Suburban Commuter Passenger Transportation, Including Ferries,Local buses or ferry services
+4112,Transport,Passenger Railways,Train services like Amtrak
+4121,Transport,Taxicabs and Limousines,Grab or Uber rides
+4131,Transport,Bus Lines,Intercity bus services
+4214,Transport,Motor Freight Carriers and Trucking,Delivery or haulage companies
+4215,Transport,Courier Services – Air and Ground, Freight Forwarders,DHL or FedEx
+4225,Retail,Public Warehousing and Storage,Storage facilities for goods
+4411,Travel,Cruise Lines,Royal Caribbean cruises
+4511,Travel,Air Carriers, Airlines – Not Elsewhere Classified,Budget airlines like Scoot
+4722,Travel,Travel Agencies and Tour Operators,Expedia or travel booking sites
+4723,Travel,Package Tour Operators (Germany Only),German tour packages
+4784,Transport,Toll and Bridge Fees,Highway toll booths
+4789,Transport,Transportation Services – Not Elsewhere Classified,Miscellaneous transport like shuttles
+4798,Transport,Not a standard MCC; may be variant (similar to 4789),N/A; confirm with issuer
+4829,Online,Money Transfer,Wire transfer services like Western Union
+4899,Streaming,Cable, Satellite, and Other Pay Television/Radio/Streaming Services,Netflix or cable providers
+4900,Utilities,Utilities – Electric, Gas, Water, Sanitary,Electricity or water bills
+5021,Retail,Office and Commercial Furniture,Furniture wholesalers
+5045,Retail,Computers, Computer Peripheral Equipment, Software,Computer hardware stores
+5047,Retail,Medical, Dental, Ophthalmic, and Hospital Equipment and Supplies,Medical supply stores
+5065,Retail,Electrical Parts and Equipment,Electronic component suppliers
+5094,Retail,Precious Stones and Metals, Watches and Jewelry,Jewelry wholesalers
+5111,Retail,Stationery, Office Supplies, Printing and Writing Paper,Office supply stores
+5122,Retail,Drugs, Drug Proprietors, and Druggists Sundries,Pharmaceutical wholesalers
+5137,Retail,Men’s, Women’s, and Children’s Uniforms and Commercial Clothing,Uniform suppliers
+5139,Retail,Commercial Footwear,Wholesale shoe suppliers
+5193,Retail,Florists Supplies, Nursery Stock, and Flowers,Plant nurseries
+5199,Retail,Nondurable Goods – Not Elsewhere Classified,Miscellaneous wholesale goods
+5200,Retail,Home Supply Warehouse Stores,Home improvement warehouses
+5262,Online,Marketplaces,Online marketplaces like Amazon
+5306,Retail,Not a standard MCC; may be variant (similar to 5300 for Wholesale Clubs),N/A; confirm with issuer
+5309,Retail,Duty Free Stores,Airport duty-free shops
+5310,Retail,Discount Stores,Budget retail chains
+5311,Retail,Department Stores,Takashimaya or Isetan
+5331,Retail,Variety Stores,Dollar stores
+5399,Retail,Miscellaneous General Merchandise,Convenience stores
+5411,Groceries,Grocery Stores, Supermarkets,NTUC FairPrice
+5441,Groceries,Candy, Nut, Confectionery Stores,Candy shops
+5462,Groceries,Bakeries,Bengawan Solo
+5499,Groceries,Miscellaneous Food Stores – Convenience Stores and Specialty Markets,7-Eleven
+5531,Retail,Automobile and Home Supply Stores,Auto parts stores
+5541,Petrol,Service Stations (With or Without Ancillary Services),Petrol stations like Shell
+5542,Petrol,Automated Fuel Dispensers,Self-service gas pumps
+5611,Retail,Men’s and Boys’ Clothing and Accessories Stores,Benjamin Barker
+5621,Retail,Women’s Ready to Wear Stores,Zara
+5631,Retail,Women’s Accessory and Specialty Stores,Pandora
+5641,Retail,Children’s and Infants’ Wear Stores,Mothercare
+5651,Retail,Family Clothing Stores,Uniqlo
+5655,Retail,Sports and Riding Apparel Stores,Nike
+5661,Retail,Shoe Stores,Skechers
+5681,Retail,Furriers and Fur Shops,Fur clothing stores
+5691,Retail,Men’s and Women’s Clothing Stores,Zalora
+5697,Retail,Tailors, Seamstresses, Mending, and Alterations,Tailoring services
+5698,Retail,Wig and Toupee Stores,Hairpiece shops
+5699,Retail,Miscellaneous Apparel and Accessory Shops,Cotton On
+5712,Retail,Furniture, Home Furnishings, and Equipment Stores, Except Appliances,IKEA
+5713,Retail,Floor Covering Stores,Carpet shops
+5714,Retail,Drapery, Window Covering, and Upholstery Stores,Curtain suppliers
+5718,Retail,Fireplace, Fireplace Screens, and Accessories Stores,Fireplace retailers
+5719,Retail,Miscellaneous Home Furnishing Specialty Stores,Home decor shops
+5722,Retail,Household Appliance Stores,Best Denki
+5732,Retail,Electronics Stores,Challenger
+5733,Retail,Music Stores – Musical Instruments, Pianos, Sheet Music,Music instrument shops
+5734,Retail,Computer Software Stores,Software retailers
+5735,Retail,Record Stores,Music media shops
+5811,Dining,Caterers,Catering services
+5812,Dining,Eating Places and Restaurants,Toast Box
+5813,Dining,Drinking Places (Alcoholic Beverages) – Bars, Taverns, Nightclubs,Pubs or bars
+5814,Dining,Fast Food Restaurants,McDonald's
+5815,Streaming,Digital Goods – Audiovisual Media Including Books, Movies, and Music,Digital media downloads
+5921,Retail,Package Stores – Beer, Wine, and Liquor,Liquor stores
+5931,Retail,Used Merchandise and Secondhand Stores,Pawn shops
+5932,Retail,Antique Shops – Sales, Repairs, and Restoration Services,Antique dealers
+5933,Retail,Pawn Shops,Pawn brokers
+5937,Retail,Antique Reproductions,Reproduction antique stores
+5941,Retail,Sporting Goods Stores,Decathlon
+5942,Retail,Book Stores,Kinokuniya
+5943,Retail,Stationery Stores, Office and School Supply Stores,Popular Bookstore
+5944,Retail,Jewelry Stores, Watches, Clocks, and Silverware Stores,Tiffany
+5945,Retail,Hobby, Toy, and Game Shops,Toys "R" Us
+5946,Retail,Camera and Photographic Supply Stores,Camera shops
+5947,Retail,Gift, Card, Novelty, and Souvenir Shops,Gift stores
+5948,Retail,Luggage and Leather Goods Stores,Coach
+5949,Retail,Sewing, Needlework, Fabric, and Piece Goods Stores,Fabric stores
+5950,Retail,Glassware, Crystal Stores,Crystal shops
+5960,Online,Direct Marketing – Insurance Services,Insurance telemarketers
+5962,Travel,Direct Marketing – Travel-Related Arrangement Services,Travel telemarketing
+5964,Online,Direct Marketing – Catalog Merchants,Mail-order catalogs
+5965,Online,Direct Marketing – Combination Catalog and Retail Merchants,Hybrid catalog/retail
+5966,Online,Direct Marketing – Outbound Telemarketing Merchants,Outbound sales calls
+5967,Online,Direct Marketing – Inbound Telemarketing Merchants,Inbound sales calls
+5968,Online,Direct Marketing – Continuity/Subscription Merchants,Subscription boxes
+5969,Online,Direct Marketing – Other Direct Marketers,Miscellaneous direct sales
+5970,Retail,Artist Supply and Craft Shops,Art supply stores
+5973,Retail,Religious Goods Stores,Religious item shops
+5975,Retail,Hearing Aids – Sales, Service, and Supply,Hearing aid providers
+5977,Retail,Cosmetic Stores,Sephora
+5978,Retail,Typewriter Stores – Sales, Rental, Service,Typewriter shops (legacy)
+5992,Retail,Florists,Flower shops
+5993,Retail,Cigar Stores and Stands,Tobacco shops
+5996,Retail,Swimming Pools – Sales and Service,Pool equipment stores
+5997,Retail,Electric Razor Stores – Sales and Service,Razor shops
+5999,Retail,Miscellaneous and Specialty Retail Stores,Unique retail shops
+6010,Online,Financial Institutions – Manual Cash Disbursements,Bank cash withdrawals
+6011,Online,Financial Institutions – Automated Cash Disbursements,ATM transactions
+6012,Online,Financial Institutions – Merchandise, Services, and Debt Repayment,Financial services payments
+6050,Online,Quasi Cash – Customer Financial Institution,Quasi-cash transactions
+6051,Online,Non-Financial Institutions – Foreign Currency, Money Orders, Travelers Cheques,Currency exchange
+6211,Online,Security Brokers/Dealers,Stockbrokers
+6300,Utilities,Insurance Sales, Underwriting, and Premiums,Insurance providers
+6381,Utilities,Insurance Premiums,Insurance payments
+6399,Utilities,Insurance – Not Elsewhere Classified,Miscellaneous insurance
+6513,Retail,Real Estate Agents and Managers – Rentals,Property rentals
+6529,Online,Quasi Cash – Remote Stored Value Load – Member,Stored value loads
+6530,Online,Quasi Cash – Remote Stored Value Load – Merchant,Merchant stored value
+6532,Online,Payment Service Providers – Member,Payment transactions
+6533,Online,Payment Service Providers – Merchant,Merchant payments
+6534,Online,Quasi Cash – Money Transfer,Money transfers
+6536,Online,MoneySend Intracountry,Domestic money sends
+6537,Online,MoneySend Intercountry,International money sends
+6538,Online,MoneySend Funding,Funding transactions
+6540,Online,Non-Financial Institutions – Stored Value Card Purchase/Load,Prepaid card loads
+6555,Online,Mastercard Imitated Rebate,Rebate transactions
+7011,Travel,Lodging – Hotels, Motels, Resorts – Not Elsewhere Classified,General hotels
+7012,Travel,Timeshares,Timeshare rentals
+7230,Retail,Beauty and Barber Shops,Salons
+7251,Retail,Shoe Repair Shops, Shoe Shine Parlors, and Hat Cleaning Shops,Shoe repair services
+7261,Retail,Funeral Services and Crematories,Funeral homes
+7273,Entertainment,Dating Services,Dating agencies
+7276,Utilities,Tax Preparation Services,Tax filing services
+7277,Retail,Counseling Services – Debt, Marriage, Personal,Counseling agencies
+7278,Retail,Buying/Shopping Services, Clubs,Shopping clubs
+7297,Retail,Massage Parlors,Massage services
+7298,Retail,Health and Beauty Spas,Spas
+7299,Retail,Miscellaneous Personal Services – Not Elsewhere Classified,Personal services
+7311,Retail,Advertising Services,Ad agencies
+7321,Retail,Consumer Credit Reporting Agencies,Credit bureaus
+7322,Retail,Debt Collection Agencies,Collection services
+7339,Retail,Stenographic and Secretarial Support Services,Secretarial services
+7349,Retail,Cleaning, Maintenance, and Janitorial Services,Cleaning companies
+7361,Retail,Employment Agencies and Temporary Help Services,Temp agencies
+7372,Online,Computer Programming, Data Processing, and Integrated Systems Design Services,IT services
+7375,Online,Information Retrieval Services,Data search services
+7392,Retail,Management, Consulting, and Public Relations Services,Consulting firms
+7393,Retail,Detective Agencies, Protective Agencies, Security Services including Armored Cars, Guard Dogs,Security companies
+7399,Retail,Business Services – Not Elsewhere Classified,Miscellaneous business services
+7511,Transport,Truck Stop Transactions,Truck stops
+7512,Travel,Car Rental Agencies (Not Elsewhere Classified),General car rentals
+7523,Transport,Parking Lots, Parking Meters, and Garages,Parking facilities
+7801,Entertainment,Government-Licensed On-Line Casinos (On-Line Gambling),Online gambling sites
+7911,Entertainment,Dance Halls, Studios, and Schools,Dance schools
+7995,Entertainment,Betting, including Lottery Tickets, Casino Gaming Chips, Off-Track Betting, and Wagers,Gambling services
+7997,Entertainment,Membership Clubs (Sports, Recreation, Athletic), Country Clubs, and Private Golf Courses,Country clubs
+7998,Entertainment,Aquariums, Seaquariums, Dolphinariums, Zoos,Singapore Zoo
+7999,Entertainment,Recreation Services – Not Elsewhere Classified,Arcades
+8011,Retail,Doctors and Physicians – Not Elsewhere Classified,General practitioners
+8021,Retail,Dentists, Orthodontists,Dental clinics
+8041,Retail,Chiropractors,Chiropractic services
+8042,Retail,Optometrists, Ophthalmologists,Eye doctors
+8043,Retail,Opticians, Optical Goods, and Eyeglasses,Eyewear stores
+8049,Retail,Podiatrists, Chiropodists,Foot doctors
+8062,Retail,Hospitals,General hospitals
+8071,Retail,Medical and Dental Laboratories,Labs
+8099,Retail,Medical Services and Health Practitioners – Not Elsewhere Classified,Health services
+8111,Retail,Legal Services and Attorneys,Law firms
+8211,Retail,Elementary and Secondary Schools,Primary schools
+8220,Retail,Colleges, Universities, Professional Schools, and Junior Colleges,Universities
+8241,Retail,Correspondence Schools,Online learning
+8244,Retail,Business and Secretarial Schools,Vocational schools
+8249,Retail,Vocational and Trade Schools,Trade training
+8299,Retail,Schools and Educational Services – Not Elsewhere Classified,Tutoring services
+8351,Retail,Child Care Services,Daycares
+8398,Retail,Charitable and Social Service Organizations,Charities like Red Cross
+8651,Retail,Political Organizations,Political groups
+8661,Retail,Religious Organizations,Churches or temples
+8699,Retail,Membership Organizations – Not Elsewhere Classified,Clubs
+8911,Retail,Architectural, Engineering, and Surveying Services,Engineering firms
+8931,Retail,Accounting, Auditing, and Bookkeeping Services,Accounting firms
+8999,Retail,Professional Services – Not Elsewhere Classified,Consultants
+9211,Utilities,Court Costs, Including Alimony and Child Support,Legal fees
+9222,Utilities,Fines,Penalty payments
+9223,Utilities,Bail and Bond Payments,Bail services
+9311,Utilities,Tax Payments,Government taxes
+9399,Utilities,Government Services – Not Elsewhere Classified,Misc. government
+9402,Utilities,Postal Services – Government Only,Post offices
+9405,Utilities,Intra-Government Purchases – Government Only,Government procurements
+9751,Groceries,UK Supermarkets, Electronic Hot File,UK grocery chains
+9754,Entertainment,Gambling – Horse Racing, Dog Racing, State Lotteries,Lotteries

@@ -18,14 +18,21 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
     min_spend_met = (tier.min_spend is None) or (bonus_spend >= tier.min_spend)
     reward = 0
     details = []
-    # Special logic for UOB Lady's
+    # Special logic for UOB Lady's and Lady's Solitaire
     if "UOB Lady" in card.name:
+        is_solitaire = "Solitaire" in card.name
+        from components.card_calculation_utils import calculate_uob_ladys_rewards
         reward, details = calculate_uob_ladys_rewards(
-            user_spending, miles_to_sgd_rate, tier)
+            user_spending, miles_to_sgd_rate, tier, is_solitaire=is_solitaire)
     # Special logic for Trust Cashback
     elif card.name == "Trust Cashback":
         reward, details = calculate_trust_cashback_rewards(
             user_spending, tier)
+    # Special logic for miles cards with a cap and bonus categories
+    elif card.card_type.lower() == 'miles' and tier.cap is not None and bonus_categories:
+        from components.card_calculation_utils import calculate_miles_card_with_bonus_cap
+        reward, details = calculate_miles_card_with_bonus_cap(
+            user_spending, miles_to_sgd_rate, tier, bonus_categories)
     elif min_spend_met:
         for cat, amount in user_spending.items():
             if cat == 'total':
@@ -66,7 +73,7 @@ def build_summary_dataframe(results):
                             ascending=False).reset_index(drop=True)
         df.insert(0, 'Rank', df.index + 1)
         cols = [
-            'Rank', 'Card Name', 'Card Type', 'Issuer', 'Monthly Reward (SGD)',
+            'Rank', 'Card Name', 'Card Type', 'Monthly Reward (SGD)',
             'Reward Rate', 'Min Spend Met', 'Cap Reached', 'Tier'
         ]
         df = df[cols]
@@ -87,7 +94,7 @@ def render_card_metrics(rewards_df, user_spending_data):
         reward_rate = (monthly_reward_val / total_spending *
                        100) if total_spending > 0 else 0
         st.markdown("### 🏆 Top Card")
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         col1.metric(
             "💳 Card",
             top_card['Card Name'],
@@ -98,33 +105,28 @@ def render_card_metrics(rewards_df, user_spending_data):
             top_card['Card Type'],
             help="Cashback or miles."
         )
+        col3, col4 = st.columns(2)
         col3.metric(
-            "🏦 Issuer",
-            top_card['Issuer'],
-            help="The bank or issuer of the card."
-        )
-        col4, col5, col6 = st.columns(3)
-        col4.metric(
             "💰 Monthly Reward",
             f"${monthly_reward_val:,.2f}",
             help="Estimated monthly reward based on your current spending."
         )
-        col5.metric(
+        col4.metric(
             "📅 Annual Reward",
             f"${annual_reward:,.2f}",
             help="Projected yearly reward if your spending remains consistent."
         )
-        col6.metric(
+        st.metric(
             "📈 Reward Rate",
             f"{reward_rate:.2f}%",
             help="Percentage of your total spending returned as rewards."
         )
 
 
-def render_breakdown_table(breakdown, card_type):
+def render_breakdown_table(breakdown, card_type, capped_reward=None, capped_rate=None):
     breakdown_df = pd.DataFrame(list(breakdown))
     if not breakdown_df.empty and isinstance(breakdown_df, pd.DataFrame):
-        breakdown_df = format_breakdown_df(breakdown, card_type)
+        breakdown_df = format_breakdown_df(breakdown, card_type, capped_reward=capped_reward, capped_rate=capped_rate)
         st.dataframe(
             breakdown_df,
             use_container_width=True,
@@ -207,7 +209,6 @@ def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
             "Rank": st.column_config.Column(),
             "Card Name": st.column_config.Column(),
             "Card Type": st.column_config.Column(),
-            "Issuer": st.column_config.Column(width="medium"),
             "Monthly Reward (SGD)": st.column_config.Column(),
             "Reward Rate": st.column_config.Column(),
             "Min Spend Met": st.column_config.Column(),
@@ -248,4 +249,13 @@ def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
     breakdown = breakdowns.get(selected_card, [])
     card_type = rewards_df.loc[rewards_df['Card Name'] == selected_card, 'Card Type'].values[0].lower(
     ) if selected_card in rewards_df['Card Name'].values else ''
-    render_breakdown_table(breakdown, card_type)
+    # Pass capped_reward and capped_rate if cap is reached
+    capped_reward = None
+    capped_rate = None
+    if 'Cap Reached' in rewards_df.columns and selected_card in rewards_df['Card Name'].values:
+        cap_reached = rewards_df.loc[rewards_df['Card Name'] == selected_card, 'Cap Reached'].values[0]
+        if cap_reached:
+            capped_reward = float(rewards_df.loc[rewards_df['Card Name'] == selected_card, 'Monthly Reward (SGD)'].values[0].replace('$', '').replace(',', ''))
+            total_amount = sum(float(d['Amount']) for d in breakdown if isinstance(d, dict) and 'Amount' in d)
+            capped_rate = (capped_reward / total_amount * 100) if total_amount > 0 else 0
+    render_breakdown_table(breakdown, card_type, capped_reward=capped_reward, capped_rate=capped_rate)
