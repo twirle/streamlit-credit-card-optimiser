@@ -4,7 +4,7 @@ import itertools
 from components.single_card_component import single_card_rewards_and_breakdowns
 from components.breakdown_format_utils import format_breakdown_df, category_icons, get_ranked_selectbox_options, get_reward_categories_with_icons
 from services.data.card_loader import load_cards_and_models
-from components.card_calculation_utils import calculate_miles_card_with_bonus_cap, calculate_uob_ladys_rewards, UOB_LADYS_GROUP_MAP
+from components.card_calculation_utils import calculate_miles_card_with_bonus_cap, calculate_uob_ladys_rewards, UOB_LADYS_GROUP_MAP, calculate_uob_visa_signature_rewards
 from itertools import combinations
 
 
@@ -21,6 +21,8 @@ def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles
         return "UOB Lady" in card.name and "Solitaire" not in card.name
     def is_solitaire(card):
         return "UOB Lady" in card.name and "Solitaire" in card.name
+    def is_uob_visa_signature(card):
+        return "UOB Visa Signature" in card.name
 
     # Use shared group definitions for Lady's logic
     group_map = UOB_LADYS_GROUP_MAP
@@ -106,7 +108,113 @@ def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles
         # Unpack best result
         _, reward1, breakdown1, reward2, breakdown2 = best
         return reward1, breakdown1, reward2, breakdown2, reward1 + reward2
-    # ... existing generic allocation logic ...
+    if is_uob_visa_signature(card1) or is_uob_visa_signature(card2):
+        # Optimal allocation for UOB Visa Signature + any card
+        fcy_group = ['fcy']
+        non_fcy_group = ['dining', 'groceries', 'petrol', 'simplygo', 'entertainment', 'retail']
+        all_groups = fcy_group + non_fcy_group
+        if is_uob_visa_signature(card1):
+            visa_card, visa_tier, other_card, other_tier = card1, tier1, card2, tier2
+        else:
+            visa_card, visa_tier, other_card, other_tier = card2, tier2, card1, tier1
+        base_rate_visa = visa_tier.base_rate or 0.4
+        bonus_rate_visa = 4.0
+        min_spend = visa_tier.min_spend or 1000
+        cap = visa_tier.cap or 1200
+        cap_used_fcy = 0
+        cap_used_nonfcy = 0
+        min_spend_fcy = sum(user_spending.get(cat, 0) for cat in fcy_group) >= min_spend
+        min_spend_nonfcy = sum(user_spending.get(cat, 0) for cat in non_fcy_group) >= min_spend
+        base_rate_other = other_tier.base_rate or 0
+        cap_other = other_tier.cap if other_tier.cap is not None else float('inf')
+        cap_used_other = 0
+        visa_breakdown = []
+        other_breakdown = []
+        visa_reward = 0
+        other_reward = 0
+        # Track allocations for min spend check
+        allocated_fcy = 0
+        allocated_nonfcy = 0
+        for cat in categories:
+            amt = user_spending.get(cat, 0)
+            if amt == 0:
+                continue
+            is_fcy = cat in fcy_group
+            is_nonfcy = cat in non_fcy_group
+            if is_fcy:
+                visa_min_met = min_spend_fcy
+                visa_cap_left = cap - cap_used_fcy
+                visa_rate = bonus_rate_visa if visa_min_met and visa_cap_left > 0 else base_rate_visa
+            elif is_nonfcy:
+                visa_min_met = min_spend_nonfcy
+                visa_cap_left = cap - cap_used_nonfcy
+                visa_rate = bonus_rate_visa if visa_min_met and visa_cap_left > 0 else base_rate_visa
+            else:
+                visa_min_met = False
+                visa_cap_left = 0
+                visa_rate = base_rate_visa
+            other_rate = other_tier.reward_rates.get(cat, base_rate_other)
+            other_cap_left = cap_other - cap_used_other
+            visa_reward_per_dollar = visa_rate * miles_to_sgd_rate if visa_card.card_type.lower() == 'miles' else visa_rate / 100
+            other_reward_per_dollar = other_rate * miles_to_sgd_rate if other_card.card_type.lower() == 'miles' else other_rate / 100
+            amt_visa = 0
+            amt_other = 0
+            if visa_reward_per_dollar > other_reward_per_dollar:
+                if is_fcy:
+                    amt_visa = min(amt, visa_cap_left)
+                    cap_used_fcy += amt_visa
+                elif is_nonfcy:
+                    amt_visa = min(amt, visa_cap_left)
+                    cap_used_nonfcy += amt_visa
+                else:
+                    amt_visa = 0
+                amt_other = amt - amt_visa
+                amt_other = min(amt_other, other_cap_left)
+                cap_used_other += amt_other
+            else:
+                amt_other = min(amt, other_cap_left)
+                cap_used_other += amt_other
+                amt_visa = amt - amt_other
+                if is_fcy:
+                    amt_visa = min(amt_visa, visa_cap_left)
+                    cap_used_fcy += amt_visa
+                elif is_nonfcy:
+                    amt_visa = min(amt_visa, visa_cap_left)
+                    cap_used_nonfcy += amt_visa
+                else:
+                    amt_visa = 0
+            # Track allocations for min spend check
+            if is_fcy:
+                allocated_fcy += amt_visa
+            if is_nonfcy:
+                allocated_nonfcy += amt_visa
+            if amt_visa > 0:
+                visa_reward_amt = amt_visa * visa_reward_per_dollar
+                visa_breakdown.append({'Category': cat, 'Amount': amt_visa, 'Rate': visa_rate, 'Reward': visa_reward_amt})
+                visa_reward += visa_reward_amt
+            if amt_other > 0:
+                other_reward_amt = amt_other * other_reward_per_dollar
+                other_breakdown.append({'Category': cat, 'Amount': amt_other, 'Rate': other_rate, 'Reward': other_reward_amt})
+                other_reward += other_reward_amt
+        # After allocation, check if allocated_fcy and allocated_nonfcy meet min spend
+        # If not, update visa_breakdown so all entries in that group use base rate
+        if allocated_fcy < min_spend:
+            for d in visa_breakdown:
+                if d['Category'] in fcy_group:
+                    d['Rate'] = base_rate_visa
+                    d['Reward'] = d['Amount'] * (base_rate_visa * miles_to_sgd_rate if visa_card.card_type.lower() == 'miles' else base_rate_visa / 100)
+            # Recalculate visa_reward
+            visa_reward = sum(d['Reward'] for d in visa_breakdown)
+        if allocated_nonfcy < min_spend:
+            for d in visa_breakdown:
+                if d['Category'] in non_fcy_group:
+                    d['Rate'] = base_rate_visa
+                    d['Reward'] = d['Amount'] * (base_rate_visa * miles_to_sgd_rate if visa_card.card_type.lower() == 'miles' else base_rate_visa / 100)
+            visa_reward = sum(d['Reward'] for d in visa_breakdown)
+        if is_uob_visa_signature(card1):
+            return visa_reward, visa_breakdown, other_reward, other_breakdown, visa_reward + other_reward
+        else:
+            return other_reward, other_breakdown, visa_reward, visa_breakdown, visa_reward + other_reward
     cap1 = tier1.cap if tier1.cap is not None else float('inf')
     cap2 = tier2.cap if tier2.cap is not None else float('inf')
     used_cap1 = 0

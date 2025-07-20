@@ -24,6 +24,11 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
         from components.card_calculation_utils import calculate_uob_ladys_rewards
         reward, details = calculate_uob_ladys_rewards(
             user_spending, miles_to_sgd_rate, tier, is_solitaire=is_solitaire)
+    # Special logic for UOB Visa Signature
+    elif "UOB Visa Signature" in card.name:
+        from components.card_calculation_utils import calculate_uob_visa_signature_rewards
+        reward, details = calculate_uob_visa_signature_rewards(
+            user_spending, miles_to_sgd_rate, tier)
     # Special logic for Trust Cashback
     elif card.name == "Trust Cashback":
         reward, details = calculate_trust_cashback_rewards(
