@@ -1,109 +1,133 @@
 import streamlit as st
 
+# Centralized default values for all spending categories
+DEFAULT_SPENDING_VALUES = {
+    'dining': 250,
+    'groceries': 250,
+    'transport': 60,
+    'simplygo': 75,
+    'streaming': 0,
+    'entertainment': 50,
+    'utilities': 0,
+    'petrol': 0,
+    'retail': 150,
+    'online': 200,
+    'travel': 0,
+    'fcy': 75,
+}
+
 
 def initialize_spending_session_state():
     """Initialize session state for spending data and miles valuation"""
     if 'user_spending_data' not in st.session_state:
-        st.session_state.user_spending_data = {
-            'dining': 200,
-            'groceries': 250,
-            'transport': 50,
-            'simplygo': 75,
-            'streaming': 25,
-            'entertainment': 25,
-            'utilities': 0,
-            'petrol': 0,
-            'retail': 100,
-            'online': 250,
-            'travel': 100,
-            'fcy': 0,
-        }
+        st.session_state.user_spending_data = DEFAULT_SPENDING_VALUES.copy()
 
     if 'miles_value_cents' not in st.session_state:
-        st.session_state.miles_value_cents = 1.5
+        st.session_state.miles_value_cents = 2.0
 
     if 'miles_to_sgd_rate' not in st.session_state:
         st.session_state.miles_to_sgd_rate = 0.02
 
 
 def create_miles_valuation_input():
-    """Create miles valuation input with enhanced styling"""
+    if 'miles_value_cents' not in st.session_state:
+        st.session_state['miles_value_cents'] = 2.0
+
     with st.sidebar.container():
         st.markdown("**💎 Miles Valuation**")
-        miles_value_cents = st.number_input(
+        st.number_input(
             "Miles Value (¢)",
             min_value=1.0,
             max_value=10.0,
-            value=st.session_state.miles_value_cents,
             step=0.1,
-            help="Value per mile in cents SGD"
+            help="Value per mile in cents SGD",
+            key="miles_value_cents"
         )
-
-    # Update session state
-    st.session_state.miles_value_cents = miles_value_cents
-    st.session_state.miles_to_sgd_rate = miles_value_cents / 100
-
-    return miles_value_cents
+    return st.session_state['miles_value_cents']
 
 
 def create_food_daily_inputs():
     """Create food and daily spending inputs"""
+    for key in ["dining", "groceries", "transport", "simplygo"]:
+        if key not in st.session_state:
+            st.session_state[key] = DEFAULT_SPENDING_VALUES[key]
     with st.sidebar.expander("🍽️ Food & Daily", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            dining = st.number_input(
-                "Dining", 0, 2000, st.session_state.user_spending_data['dining'], 25, key="dining")
-            groceries = st.number_input(
-                "Groceries", 0, 2000, st.session_state.user_spending_data['groceries'], 25, key="groceries")
+            st.number_input(
+                "Dining", 0, 2000, step=25, key="dining",
+                help="Restaurants, cafes, hawkers, FoodPanda, GrabFood")
+            st.number_input(
+                "Groceries", 0, 2000, step=25, key="groceries",
+                help="Supermarkets, RedMart")
         with col2:
-            transport = st.number_input(
-                "Transport", 0, 500, st.session_state.user_spending_data['transport'], 25, key="transport")
-            simplygo = st.number_input(
-                "SimplyGo", 0, 500, st.session_state.user_spending_data['simplygo'], 25, key="simplygo")
-    return dining, groceries, transport, simplygo
+            st.number_input(
+                "Transport", 0, 500, step=25, key="transport",
+                help="Ride-hailing, taxis, private hire")
+            st.number_input(
+                "SimplyGo", 0, 500, step=25, key="simplygo",
+                help="Public transport (bus/MRT)")
+    return st.session_state["dining"], st.session_state["groceries"], st.session_state["transport"], st.session_state["simplygo"]
 
 
 def create_entertainment_utilities_inputs():
     """Create entertainment, bills, and petrol spending inputs"""
+    for key in ["streaming", "entertainment", "utilities", "petrol"]:
+        if key not in st.session_state:
+            st.session_state[key] = DEFAULT_SPENDING_VALUES[key]
     with st.sidebar.expander("🎬 Entertainment & Bills", expanded=True):
         col3, col4 = st.columns(2)
         with col3:
-            streaming = st.number_input(
-                "Streaming", 0, 200, st.session_state.user_spending_data['streaming'], 5, key="streaming")
-            petrol = st.number_input(
-                "Petrol", 0, 1000, st.session_state.user_spending_data['petrol'], 25, key="petrol")
+            st.number_input(
+                "Streaming", 0, 200, step=5, key="streaming",
+                help="Netflix, Disney+, Spotify, etc.")
+            st.number_input(
+                "Petrol", 0, 1000, step=25, key="petrol",
+                help="Fuel for private car")
         with col4:
-            entertainment = st.number_input(
-                "Entertainment", 0, 500, st.session_state.user_spending_data['entertainment'], 25, key="entertainment")
-            utilities = st.number_input(
-                "Utilities", 0, 500, st.session_state.user_spending_data['utilities'], 25, key="utilities")
-    return streaming, entertainment, utilities, petrol
+            st.number_input(
+                "Entertainment", 0, 500, step=25, key="entertainment",
+                help="Movies, concerts, events")
+            st.number_input(
+                "Utilities", 0, 500, step=25, key="utilities",
+                help="Electricity, water, gas")
+    return st.session_state["streaming"], st.session_state["entertainment"], st.session_state["utilities"], st.session_state["petrol"]
 
 
 def create_shopping_inputs():
     """Create shopping spending inputs"""
+    for key in ["retail", "online"]:
+        if key not in st.session_state:
+            st.session_state[key] = DEFAULT_SPENDING_VALUES[key]
     with st.sidebar.expander("🛍️ Shopping", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            retail = st.number_input(
-                "Retail", 0, 1000, st.session_state.user_spending_data['retail'], 25, key="retail")
+            st.number_input(
+                "Retail", 0, 1000, step=25, key="retail",
+                help="In-store shopping, malls, fashion, discount stores, Wattsons, etc.")
         with col2:
-            online = st.number_input(
-                "Online", 0, 1000, st.session_state.user_spending_data['online'], 25, key="online")
-    return retail, online
+            st.number_input(
+                "Online", 0, 1000, step=25, key="online",
+                help="E-commerce, Lazada, Shopee, Amazon")
+    return st.session_state["retail"], st.session_state["online"]
 
 
 def create_travel_fcy_inputs():
     """Create travel and FCY spending inputs"""
+    for key in ["travel", "fcy"]:
+        if key not in st.session_state:
+            st.session_state[key] = DEFAULT_SPENDING_VALUES[key]
     with st.sidebar.expander("✈️ Travel & FCY", expanded=True):
         col5, col6 = st.columns(2)
         with col5:
-            travel = st.number_input(
-                "Travel", 0, 2000, st.session_state.user_spending_data['travel'], 50, key="travel")
+            st.number_input(
+                "Travel", 0, 2000, step=50, key="travel",
+                help="Hotels, flights")
         with col6:
-            fcy = st.number_input(
-                "FCY", 0, 2000, st.session_state.user_spending_data['fcy'], 50, key="fcy")
-    return travel, fcy
+            st.number_input(
+                "FCY", 0, 2000, step=50, key="fcy",
+                help="All non-SGD spend, e.g. online or overseas")
+    return st.session_state["travel"], st.session_state["fcy"]
 
 
 def create_spending_summary(total):
