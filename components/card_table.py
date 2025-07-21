@@ -33,7 +33,10 @@ def render_card_table():
 
     cashback_df = df[df["Type"].str.lower(
     ) == "cashback"].reset_index(drop=True)
+
     miles_df = df[df["Type"].str.lower() == "miles"].reset_index(drop=True)
+
+    st.markdown("**Current list of supported cards**:")
     cashback_tab, miles_tab = st.tabs(["Cashback Cards", "Miles Cards"])
 
     with cashback_tab:

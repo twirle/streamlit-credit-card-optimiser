@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
 from collections import namedtuple
-from services.data.card_loader import load_cards_and_models
 from components.breakdown_format_utils import format_breakdown_df, get_ranked_selectbox_options
 from components.card_calculation_utils import calculate_uob_ladys_rewards, calculate_trust_cashback_rewards
+from components.state.session import (
+    get_selected_card_display, set_selected_card_display, get_user_spending, set_user_spending, initialize_spending_state
+)
+from components.inputs.spending_inputs import DEFAULT_SPENDING_VALUES
 
 SingleCardRewardsResult = namedtuple('SingleCardRewardsResult', [
     'summary_df', 'breakdown_dict']
@@ -11,7 +14,6 @@ SingleCardRewardsResult = namedtuple('SingleCardRewardsResult', [
 
 
 def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
-    # --- Centralized tier selection for all cards ---
     if hasattr(card, 'tiers') and len(card.tiers) > 1:
         eligible_tiers = sorted(card.tiers, key=lambda t: (t.min_spend or 0))
         selected_tier = None
@@ -23,8 +25,6 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
                 eligible_cats = list(t.reward_rates.keys())
                 total_eligible_spend = sum(user_spending.get(
                     cat.strip().lower(), 0) for cat in eligible_cats)
-            print(
-                f"[DEBUG] Checking tier min_spend={t.min_spend}, total_eligible_spend={total_eligible_spend}")
             if t.min_spend is None or total_eligible_spend >= (t.min_spend or 0):
                 selected_tier = t
         if selected_tier is None:
@@ -52,15 +52,6 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
     reward = 0
     details = []
 
-    # Debug prints for category mapping
-    print(f"\n[DEBUG] Card: {card.name}")
-    print("[DEBUG] user_spending keys:", list(user_spending.keys()))
-    print("[DEBUG] tier.reward_rates keys:", list(tier.reward_rates.keys()))
-    print("[DEBUG] tier.reward_rates:", tier.reward_rates)
-    print("[DEBUG] base_rate:", base_rate)
-    print(
-        f"[DEBUG] Selected tier for {card.name}: min_spend={tier.min_spend}, rates={tier.reward_rates}, base_rate={base_rate}")
-
     # Special logic for UOB Lady's and Lady's Solitaire
     if "UOB Lady" in card.name:
         is_solitaire = "Solitaire" in card.name
@@ -87,8 +78,6 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
                 continue
             cat_key = cat.strip().lower()
             rate = tier.reward_rates.get(cat_key, base_rate)
-            print(
-                f"[DEBUG] Category: {cat} (normalized: {cat_key}), Amount: {amount}, Rate used: {rate}")
             if card.card_type.lower() == 'cashback':
                 reward += amount * (rate / 100)
             elif card.card_type.lower() == 'miles':
@@ -185,8 +174,9 @@ def render_breakdown_table(breakdown, card_type, capped_reward=None, capped_rate
         )
 
 
-def single_card_rewards_and_breakdowns(user_spending, miles_to_sgd_rate=0.02):
-    cards = load_cards_and_models()
+def single_card_rewards_and_breakdowns(user_spending, miles_to_sgd_rate=0.02, cards=None):
+    if cards is None:
+        raise ValueError("cards must be provided to single_card_rewards_and_breakdowns")
     results = []
     breakdowns = {}
     total_spending = user_spending.get('total', 0)
@@ -216,6 +206,8 @@ def single_card_rewards_and_breakdowns(user_spending, miles_to_sgd_rate=0.02):
             best_reward = best_tier.cap
             cap_reached = True
             best_details['cap_reached'] = cap_reached
+            # Recalculate reward rate using capped reward
+            best_reward_rate = (best_reward / total_spending * 100) if total_spending > 0 else 0
 
         results.append({
             'Card Name': card.name,
@@ -232,10 +224,15 @@ def single_card_rewards_and_breakdowns(user_spending, miles_to_sgd_rate=0.02):
     return SingleCardRewardsResult(summary_df=df, breakdown_dict=build_breakdown_dict(breakdowns))
 
 
-def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
+def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02, cards=None):
     st.subheader("\U0001F4B3 Single Card Monthly Rewards")
+    # Ensure session state is initialized (if needed)
+    # If you want to ensure it's always set
+    initialize_spending_state(DEFAULT_SPENDING_VALUES)
+    if cards is None:
+        raise ValueError("cards must be provided to render_single_card_component")
     result = single_card_rewards_and_breakdowns(
-        user_spending_data, miles_to_sgd_rate)
+        user_spending_data, miles_to_sgd_rate, cards)
     rewards_df = result.summary_df.copy()
     breakdowns = result.breakdown_dict
     # Format columns for display only
@@ -245,7 +242,7 @@ def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
     if 'Reward Rate' in rewards_df.columns:
         rewards_df['Reward Rate'] = rewards_df['Reward Rate'].apply(
             lambda x: f"{x:.2f}%")
-    render_card_metrics(rewards_df, user_spending_data)
+    render_card_metrics(rewards_df, get_user_spending())
     st.dataframe(
         rewards_df,
         use_container_width=True,
@@ -267,24 +264,22 @@ def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
 
     # Use ranked selectbox options
     options, display_to_card = get_ranked_selectbox_options(rewards_df)
-    # Persist selected card in session state
-    if 'selected_card_display' not in st.session_state:
-        st.session_state['selected_card_display'] = options[0] if options else None
-    # If the previous selection is not in the new options, reset to first
-    if st.session_state['selected_card_display'] not in options:
-        st.session_state['selected_card_display'] = options[0] if options else None
+    # Persist selected card in session state using helpers
+    selected_display = get_selected_card_display()
+    if selected_display not in options:
+        selected_display = options[0] if options else None
+        set_selected_card_display(selected_display)
     selected_display = st.selectbox(
         "Select a card for breakdown", options, key="breakdown_card_selectbox",
-        index=options.index(st.session_state['selected_card_display']) if st.session_state['selected_card_display'] in options else 0,
-        on_change=lambda: st.session_state.update({'selected_card_display': st.session_state['breakdown_card_selectbox']}))
-    # Update session state if changed
-    st.session_state['selected_card_display'] = selected_display
-    selected_card = display_to_card[selected_display] if selected_display in display_to_card else (card_names[0] if card_names else None)
+        index=options.index(
+            selected_display) if selected_display in options else 0,
+        on_change=lambda: set_selected_card_display(st.session_state['breakdown_card_selectbox']))
+    set_selected_card_display(selected_display)
+    selected_card = display_to_card[selected_display] if selected_display in display_to_card else (
+        card_names[0] if card_names else None)
 
     # Show reward categories for selected card
-    from services.data.card_loader import load_cards_and_models
     from components.breakdown_format_utils import get_reward_categories_with_icons
-    cards = load_cards_and_models()
     card_obj = next((c for c in cards if c.name == selected_card), None)
     if card_obj and card_obj.tiers:
         # Use the best tier (first match by description, else first tier)

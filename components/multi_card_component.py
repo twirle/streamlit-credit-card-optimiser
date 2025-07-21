@@ -3,9 +3,12 @@ import pandas as pd
 import itertools
 from components.single_card_component import single_card_rewards_and_breakdowns
 from components.breakdown_format_utils import format_breakdown_df, category_icons, get_ranked_selectbox_options, get_reward_categories_with_icons
-from services.data.card_loader import load_cards_and_models
 from components.card_calculation_utils import calculate_miles_card_with_bonus_cap, calculate_uob_ladys_rewards, UOB_LADYS_GROUP_MAP, calculate_uob_visa_signature_rewards
 from itertools import combinations
+from components.state.session import (
+    get_selected_multi_cards, set_selected_multi_cards, initialize_spending_state
+)
+# from components.inputs.spending_inputs import DEFAULT_SPENDING_VALUES
 
 
 def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles_to_sgd_rate):
@@ -350,12 +353,15 @@ def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles
     return reward1, breakdown1, reward2, breakdown2, total_combined_reward
 
 
-def render_multi_card_component(user_spending_data, miles_to_sgd_rate=0.02):
+def render_multi_card_component(user_spending_data, miles_to_sgd_rate=0.02, cards=None):
     st.subheader("🃏 Multi-Card Monthly Rewards")
+
+    if cards is None:
+        raise ValueError("cards must be provided to render_multi_card_component")
 
     # Get all cards and their single rewards
     single_result = single_card_rewards_and_breakdowns(
-        user_spending_data, miles_to_sgd_rate)
+        user_spending_data, miles_to_sgd_rate, cards)
     single_df = single_result.summary_df
 
     # Get best single card reward (float, not $-formatted)
@@ -364,8 +370,7 @@ def render_multi_card_component(user_spending_data, miles_to_sgd_rate=0.02):
     else:
         best_single_val = 0
 
-    # Load all cards
-    cards = load_cards_and_models()
+    # Use the passed-in cards
     card_names = [card.name for card in cards]
 
     # Compute all unique 2-card combinations
@@ -457,37 +462,27 @@ def render_multi_card_component(user_spending_data, miles_to_sgd_rate=0.02):
 
     # Card selectors
     all_card_names = [card.name for card in cards]
-
-    # Persist selected cards in session state
-    if 'selected_multi_card1' not in st.session_state:
-        st.session_state['selected_multi_card1'] = all_card_names[0] if all_card_names else None
-    if 'selected_multi_card2' not in st.session_state:
-        st.session_state['selected_multi_card2'] = all_card_names[1] if len(
-            all_card_names) > 1 else (all_card_names[0] if all_card_names else None)
-
-    # If previous selections are not in the new options, reset to defaults
-    if st.session_state['selected_multi_card1'] not in all_card_names:
-        st.session_state['selected_multi_card1'] = all_card_names[0] if all_card_names else None
-    if st.session_state['selected_multi_card2'] not in all_card_names:
-        st.session_state['selected_multi_card2'] = all_card_names[1] if len(
-            all_card_names) > 1 else (all_card_names[0] if all_card_names else None)
+    # Persist selected cards in session state using helpers
+    selected_card1, selected_card2 = get_selected_multi_cards()
+    if selected_card1 not in all_card_names:
+        selected_card1 = all_card_names[0] if all_card_names else None
+    if selected_card2 not in all_card_names:
+        selected_card2 = all_card_names[1] if len(all_card_names) > 1 else (
+            all_card_names[0] if all_card_names else None)
     colA, colB = st.columns(2)
     with colA:
         selected_card1 = st.selectbox(
             "Select Card 1", all_card_names, key="multi_breakdown_card1_selectbox",
             index=all_card_names.index(
-                st.session_state['selected_multi_card1']) if st.session_state['selected_multi_card1'] in all_card_names else 0,
-            on_change=lambda: st.session_state.update({'selected_multi_card1': st.session_state['multi_breakdown_card1_selectbox']}))
+                selected_card1) if selected_card1 in all_card_names else 0,
+            on_change=lambda: set_selected_multi_cards(st.session_state['multi_breakdown_card1_selectbox'], selected_card2))
     with colB:
         selected_card2 = st.selectbox(
             "Select Card 2", all_card_names, key="multi_breakdown_card2_selectbox",
             index=all_card_names.index(
-                st.session_state['selected_multi_card2']) if st.session_state['selected_multi_card2'] in all_card_names else 0,
-            on_change=lambda: st.session_state.update({'selected_multi_card2': st.session_state['multi_breakdown_card2_selectbox']}))
-
-    # Update session state if changed
-    st.session_state['selected_multi_card1'] = selected_card1
-    st.session_state['selected_multi_card2'] = selected_card2
+                selected_card2) if selected_card2 in all_card_names else 0,
+            on_change=lambda: set_selected_multi_cards(selected_card1, st.session_state['multi_breakdown_card2_selectbox']))
+    set_selected_multi_cards(selected_card1, selected_card2)
 
     # Get breakdowns for selected cards
     # Use the actual allocation breakdowns for the selected card pair
