@@ -3,7 +3,8 @@ from pathlib import Path
 from models.credit_card_model import CreditCard, CardTier
 from typing import List, Dict
 
-CARD_CSV_PATH = Path(__file__).parent.parent.parent / "credit_cards.csv"
+CARD_CSV_PATH = Path(__file__).parent.parent.parent / \
+    "./cardData/credit_cards.csv"
 
 CATEGORY_COLUMNS = [
     "Dining Rate", "Groceries Rate", "Petrol Rate", "Transport Rate", "SimplyGo Rate", "Streaming Rate", "Entertainment Rate", "Utilities Rate", "Retail Rate", "Departmental Rate", "Online Rate", "Travel Rate", "FCY Rate"
@@ -54,7 +55,8 @@ def load_cards_and_models() -> List[CreditCard]:
                 val = row[cat]
                 fval = _to_float(val)
                 if fval is not None:
-                    reward_rates[cat.replace(" Rate", "").lower()] = fval
+                    key = cat.replace(" Rate", "").strip().lower()
+                    reward_rates[key] = fval
         base_rate = None
         if "Base Rate" in colset:
             val = row["Base Rate"]

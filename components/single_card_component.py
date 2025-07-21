@@ -11,13 +11,56 @@ SingleCardRewardsResult = namedtuple('SingleCardRewardsResult', [
 
 
 def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
+    # --- Centralized tier selection for all cards ---
+    if hasattr(card, 'tiers') and len(card.tiers) > 1:
+        eligible_tiers = sorted(card.tiers, key=lambda t: (t.min_spend or 0))
+        selected_tier = None
+        for t in eligible_tiers:
+            if card.card_type.lower() == 'cashback':
+                total_eligible_spend = sum(
+                    amount for cat, amount in user_spending.items() if cat != 'total')
+            else:
+                eligible_cats = list(t.reward_rates.keys())
+                total_eligible_spend = sum(user_spending.get(
+                    cat.strip().lower(), 0) for cat in eligible_cats)
+            print(
+                f"[DEBUG] Checking tier min_spend={t.min_spend}, total_eligible_spend={total_eligible_spend}")
+            if t.min_spend is None or total_eligible_spend >= (t.min_spend or 0):
+                selected_tier = t
+        if selected_tier is None:
+            # No eligible tier, use a base tier with only the base rate
+            base_tier = card.tiers[0]  # lowest tier, for base_rate
+            tier = type(base_tier)(
+                min_spend=None,
+                cap=None,
+                reward_rates={},  # no bonus rates
+                base_rate=base_tier.base_rate,
+                description="Base Rate"
+            )
+        else:
+            tier = selected_tier
     base_rate = tier.base_rate or 0
     bonus_categories = [cat for cat,
                         rate in tier.reward_rates.items() if rate > base_rate]
     bonus_spend = sum(user_spending.get(cat, 0) for cat in bonus_categories)
-    min_spend_met = (tier.min_spend is None) or (bonus_spend >= tier.min_spend)
+    if card.card_type.lower() == 'cashback':
+        min_spend_met = (tier.min_spend is None) or (sum(
+            amount for cat, amount in user_spending.items() if cat != 'total') >= (tier.min_spend or 0))
+    else:
+        min_spend_met = (tier.min_spend is None) or (
+            bonus_spend >= tier.min_spend)
     reward = 0
     details = []
+
+    # Debug prints for category mapping
+    print(f"\n[DEBUG] Card: {card.name}")
+    print("[DEBUG] user_spending keys:", list(user_spending.keys()))
+    print("[DEBUG] tier.reward_rates keys:", list(tier.reward_rates.keys()))
+    print("[DEBUG] tier.reward_rates:", tier.reward_rates)
+    print("[DEBUG] base_rate:", base_rate)
+    print(
+        f"[DEBUG] Selected tier for {card.name}: min_spend={tier.min_spend}, rates={tier.reward_rates}, base_rate={base_rate}")
+
     # Special logic for UOB Lady's and Lady's Solitaire
     if "UOB Lady" in card.name:
         is_solitaire = "Solitaire" in card.name
@@ -38,26 +81,14 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
         from components.card_calculation_utils import calculate_miles_card_with_bonus_cap
         reward, details = calculate_miles_card_with_bonus_cap(
             user_spending, miles_to_sgd_rate, tier, bonus_categories)
-    elif min_spend_met:
-        for cat, amount in user_spending.items():
-            if cat == 'total':
-                continue
-            rate = tier.reward_rates.get(cat, base_rate)
-            if card.card_type.lower() == 'cashback':
-                reward += amount * (rate / 100)
-            elif card.card_type.lower() == 'miles':
-                reward += amount * rate * miles_to_sgd_rate
-            details.append({
-                'Category': cat,
-                'Amount': amount,
-                'Rate': rate,
-                'Reward': amount * (rate / 100) if card.card_type.lower() == 'cashback' else amount * rate * miles_to_sgd_rate
-            })
     else:
         for cat, amount in user_spending.items():
             if cat == 'total':
                 continue
-            rate = base_rate
+            cat_key = cat.strip().lower()
+            rate = tier.reward_rates.get(cat_key, base_rate)
+            print(
+                f"[DEBUG] Category: {cat} (normalized: {cat_key}), Amount: {amount}, Rate used: {rate}")
             if card.card_type.lower() == 'cashback':
                 reward += amount * (rate / 100)
             elif card.card_type.lower() == 'miles':
@@ -68,6 +99,14 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
                 'Rate': rate,
                 'Reward': amount * (rate / 100) if card.card_type.lower() == 'cashback' else amount * rate * miles_to_sgd_rate
             })
+    # Recalculate min_spend_met for the selected tier
+    if card.card_type.lower() == 'cashback':
+        min_spend_met = (tier.min_spend is None) or (sum(
+            amount for cat, amount in user_spending.items() if cat != 'total') >= (tier.min_spend or 0))
+    else:
+        eligible_cats = list(tier.reward_rates.keys())
+        min_spend_met = (tier.min_spend is None) or (sum(user_spending.get(
+            cat.strip().lower(), 0) for cat in eligible_cats) >= (tier.min_spend or 0))
     return reward, details, min_spend_met, False, tier
 
 
@@ -131,7 +170,8 @@ def render_card_metrics(rewards_df, user_spending_data):
 def render_breakdown_table(breakdown, card_type, capped_reward=None, capped_rate=None):
     breakdown_df = pd.DataFrame(list(breakdown))
     if not breakdown_df.empty and isinstance(breakdown_df, pd.DataFrame):
-        breakdown_df = format_breakdown_df(breakdown, card_type, capped_reward=capped_reward, capped_rate=capped_rate)
+        breakdown_df = format_breakdown_df(
+            breakdown, card_type, capped_reward=capped_reward, capped_rate=capped_rate)
         st.dataframe(
             breakdown_df,
             use_container_width=True,
@@ -169,14 +209,14 @@ def single_card_rewards_and_breakdowns(user_spending, miles_to_sgd_rate=0.02):
                     'min_spend_met': min_spend_met
                 }
                 best_reward_rate = reward_rate
-        
+
         # Apply cap after selecting the best tier
         cap_reached = False
         if best_tier and best_tier.cap is not None and best_reward > best_tier.cap:
             best_reward = best_tier.cap
             cap_reached = True
             best_details['cap_reached'] = cap_reached
-        
+
         results.append({
             'Card Name': card.name,
             'Card Type': card.card_type,
@@ -193,7 +233,7 @@ def single_card_rewards_and_breakdowns(user_spending, miles_to_sgd_rate=0.02):
 
 
 def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
-    st.subheader("💳 Single Card Monthly Rewards")
+    st.subheader("\U0001F4B3 Single Card Monthly Rewards")
     result = single_card_rewards_and_breakdowns(
         user_spending_data, miles_to_sgd_rate)
     rewards_df = result.summary_df.copy()
@@ -222,16 +262,24 @@ def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
         }
     )
     # Card selector and detailed breakdown
-    st.subheader("🔎 Detailed Spending Breakdown")
+    st.subheader("\U0001F50E Detailed Spending Breakdown")
     card_names = rewards_df['Card Name'].tolist()
 
     # Use ranked selectbox options
     options, display_to_card = get_ranked_selectbox_options(rewards_df)
-    if options:
-        selected_display = st.selectbox("Select a card for breakdown", options)
-        selected_card = display_to_card[selected_display]
-    else:
-        selected_card = card_names[0] if card_names else None
+    # Persist selected card in session state
+    if 'selected_card_display' not in st.session_state:
+        st.session_state['selected_card_display'] = options[0] if options else None
+    # If the previous selection is not in the new options, reset to first
+    if st.session_state['selected_card_display'] not in options:
+        st.session_state['selected_card_display'] = options[0] if options else None
+    selected_display = st.selectbox(
+        "Select a card for breakdown", options, key="breakdown_card_selectbox",
+        index=options.index(st.session_state['selected_card_display']) if st.session_state['selected_card_display'] in options else 0,
+        on_change=lambda: st.session_state.update({'selected_card_display': st.session_state['breakdown_card_selectbox']}))
+    # Update session state if changed
+    st.session_state['selected_card_display'] = selected_display
+    selected_card = display_to_card[selected_display] if selected_display in display_to_card else (card_names[0] if card_names else None)
 
     # Show reward categories for selected card
     from services.data.card_loader import load_cards_and_models
@@ -249,7 +297,8 @@ def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
                     if t.description == tier_desc:
                         tier_obj = t
                         break
-        cats_str = get_reward_categories_with_icons(card_obj, tier_obj, as_string=True)
+        cats_str = get_reward_categories_with_icons(
+            card_obj, tier_obj, as_string=True)
         st.caption(f"Reward Categories: {cats_str}")
     breakdown = breakdowns.get(selected_card, [])
     card_type = rewards_df.loc[rewards_df['Card Name'] == selected_card, 'Card Type'].values[0].lower(
@@ -258,9 +307,14 @@ def render_single_card_component(user_spending_data, miles_to_sgd_rate=0.02):
     capped_reward = None
     capped_rate = None
     if 'Cap Reached' in rewards_df.columns and selected_card in rewards_df['Card Name'].values:
-        cap_reached = rewards_df.loc[rewards_df['Card Name'] == selected_card, 'Cap Reached'].values[0]
+        cap_reached = rewards_df.loc[rewards_df['Card Name']
+                                     == selected_card, 'Cap Reached'].values[0]
         if cap_reached:
-            capped_reward = float(rewards_df.loc[rewards_df['Card Name'] == selected_card, 'Monthly Reward (SGD)'].values[0].replace('$', '').replace(',', ''))
-            total_amount = sum(float(d['Amount']) for d in breakdown if isinstance(d, dict) and 'Amount' in d)
-            capped_rate = (capped_reward / total_amount * 100) if total_amount > 0 else 0
-    render_breakdown_table(breakdown, card_type, capped_reward=capped_reward, capped_rate=capped_rate)
+            capped_reward = float(rewards_df.loc[rewards_df['Card Name'] == selected_card,
+                                  'Monthly Reward (SGD)'].values[0].replace('$', '').replace(',', ''))
+            total_amount = sum(float(d['Amount']) for d in breakdown if isinstance(
+                d, dict) and 'Amount' in d)
+            capped_rate = (capped_reward / total_amount *
+                           100) if total_amount > 0 else 0
+    render_breakdown_table(
+        breakdown, card_type, capped_reward=capped_reward, capped_rate=capped_rate)
