@@ -8,7 +8,7 @@ from components.category_help import CATEGORY_HELP
 DEFAULT_SPENDING_VALUES = {
     'dining': 250,
     'groceries': 250,
-    'transport': 60,
+    'transport': 75,
     'simplygo': 75,
     'streaming': 0,
     'entertainment': 50,

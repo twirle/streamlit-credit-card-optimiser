@@ -13,6 +13,54 @@ SingleCardRewardsResult = namedtuple('SingleCardRewardsResult', [
 )
 
 
+def calculate_cashback_card_rewards(card, tier, user_spending):
+    base_rate = tier.base_rate or 0
+    reward = 0
+    cap = tier.cap
+    cap_remaining = cap if cap is not None else float('inf')
+    category_agg = {}
+    for cat, amount in user_spending.items():
+        if cat == 'total':
+            continue
+        cat_key = cat.strip().lower()
+        rate = tier.reward_rates.get(cat_key, base_rate)
+        reward_for_cat = amount * (rate / 100)
+        # Always show the potential reward for each category
+        if cat not in category_agg:
+            category_agg[cat] = {
+                'Category': cat,
+                'Amount': amount,
+                'Rate': rate,
+                'Reward': reward_for_cat
+            }
+        else:
+            category_agg[cat]['Amount'] += amount
+            category_agg[cat]['Reward'] += reward_for_cat
+        reward += reward_for_cat
+    # The total reward will be capped in the summary, but per-category shows potential
+    details = list(category_agg.values())
+    return reward, details
+
+def calculate_miles_card_rewards(card, tier, user_spending, miles_to_sgd_rate):
+    base_rate = tier.base_rate or 0
+    reward = 0
+    details = []
+    for cat, amount in user_spending.items():
+        if cat == 'total':
+            continue
+        cat_key = cat.strip().lower()
+        rate = tier.reward_rates.get(cat_key, base_rate)
+        reward_for_cat = amount * rate * miles_to_sgd_rate
+        details.append({
+            'Category': cat,
+            'Amount': amount,
+            'Rate': rate,
+            'Reward': reward_for_cat
+        })
+        reward += reward_for_cat
+    return reward, details
+
+
 def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
     if hasattr(card, 'tiers') and len(card.tiers) > 1:
         eligible_tiers = sorted(card.tiers, key=lambda t: (t.min_spend or 0))
@@ -73,21 +121,13 @@ def calculate_card_tier_reward(card, tier, user_spending, miles_to_sgd_rate):
         reward, details = calculate_miles_card_with_bonus_cap(
             user_spending, miles_to_sgd_rate, tier, bonus_categories)
     else:
-        for cat, amount in user_spending.items():
-            if cat == 'total':
-                continue
-            cat_key = cat.strip().lower()
-            rate = tier.reward_rates.get(cat_key, base_rate)
-            if card.card_type.lower() == 'cashback':
-                reward += amount * (rate / 100)
-            elif card.card_type.lower() == 'miles':
-                reward += amount * rate * miles_to_sgd_rate
-            details.append({
-                'Category': cat,
-                'Amount': amount,
-                'Rate': rate,
-                'Reward': amount * (rate / 100) if card.card_type.lower() == 'cashback' else amount * rate * miles_to_sgd_rate
-            })
+        if card.card_type.lower() == 'cashback':
+            reward, details = calculate_cashback_card_rewards(card, tier, user_spending)
+        elif card.card_type.lower() == 'miles':
+            reward, details = calculate_miles_card_rewards(card, tier, user_spending, miles_to_sgd_rate)
+        else:
+            # fallback: treat as cashback
+            reward, details = calculate_cashback_card_rewards(card, tier, user_spending)
     # Recalculate min_spend_met for the selected tier
     if card.card_type.lower() == 'cashback':
         min_spend_met = (tier.min_spend is None) or (sum(
@@ -170,6 +210,7 @@ def render_breakdown_table(breakdown, card_type, capped_reward=None, capped_rate
                 "Amount": st.column_config.Column(width="small"),
                 "Rate": st.column_config.Column(width="small"),
                 "Reward": st.column_config.Column(width="small"),
+                "Potential Reward": st.column_config.Column(width="small"),
             }
         )
 

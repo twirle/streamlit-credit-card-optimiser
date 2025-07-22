@@ -23,8 +23,7 @@ def format_breakdown_df(breakdown, card_type, capped_reward=None, capped_rate=No
     breakdown_df = pd.DataFrame(list(breakdown))
     if not breakdown_df.empty and isinstance(breakdown_df, pd.DataFrame):
         if 'Reward' in breakdown_df.columns:
-            breakdown_df = breakdown_df[breakdown_df['Reward'] != 0].copy()
-            # Ensure pandas DataFrame
+            # Show all rows, even if reward is 0 (for cap display)
             breakdown_df = pd.DataFrame(breakdown_df)
         if 'Category' in breakdown_df.columns:
             breakdown_df.loc[:, 'Category'] = breakdown_df['Category'].astype(
@@ -59,8 +58,7 @@ def format_breakdown_df(breakdown, card_type, capped_reward=None, capped_rate=No
             breakdown_df['Reward'] = breakdown_df['Reward'].astype('object')
             breakdown_df.loc[:, 'Reward'] = breakdown_df['Reward'].apply(
                 lambda x: f"${x:,.2f}")
-            total_reward = sum([row['Reward'] for row in breakdown if isinstance(
-                row, dict) and 'Reward' in row])
+            total_reward = sum([row['Reward'] if isinstance(row['Reward'], (int, float)) else 0 for row in breakdown if isinstance(row, dict) and 'Reward' in row])
             # Calculate total amount spent (exclude total row itself)
             total_amount = sum([row['Amount'] for row in breakdown if isinstance(row, dict) and 'Amount' in row])
             total_row = {col: '' for col in breakdown_df.columns}
