@@ -27,6 +27,9 @@ def render_card_table():
         df["Income Requirement"] = df["Income Requirement"].apply(
             lambda x: f"${int(x):,}" if pd.notnull(x) and x != '' else "-")
 
+        # Rename for display
+        df = df.rename(columns={"Income Requirement": "Income Req."})
+
     # Format 'Categories' as comma-separated string
     if "Categories" in df.columns:
         df["Categories"] = df["Categories"].apply(
@@ -46,7 +49,7 @@ def render_card_table():
                          "Name": st.column_config.Column(width="medium"),
                          "Issuer": st.column_config.Column(width="small"),
                          "Type": st.column_config.Column(width="small"),
-                         "Income Requirement": st.column_config.Column(width="small"),
+                         "Income Req.": st.column_config.Column(width="small"),
                          "Categories": st.column_config.Column(width="large"),
                      })
 
@@ -56,6 +59,6 @@ def render_card_table():
                          "Name": st.column_config.Column(width="medium"),
                          "Issuer": st.column_config.Column(width="small"),
                          "Type": st.column_config.Column(width="small"),
-                         "Income Requirement": st.column_config.Column(width="small"),
+                         "Income Req.": st.column_config.Column(width="small"),
                          "Categories": st.column_config.Column(width="large"),
                      })
