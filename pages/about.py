@@ -3,11 +3,11 @@ from components.card_table import render_card_table
 from components.category_help import CATEGORY_HELP
 import pandas as pd
 
-st.subheader("About Credit Card Optimiser")
-st.caption("**Last updated**: 21 Jul 2025")
+st.subheader("📈About Credit Card Optimiser")
+st.caption("**🏷️Card info database last updated**: 21 Jul 2025")
 
 """
-This tool helps you find the best credit card strategy to maximise your rewards based on your spending patterns. It calculates optimal rewards based on your monthly spending habits, and suggests single card or multi-card strategies.
+This tool helps you find the best credit card strategy to maximise your rewards based on your spending patterns. It calculates optimal rewards based on your monthly spending habits on-the-fly, and displays the result of each single card or multi-card strategy.
 
 Application is still in beta with reward calculations for multi-card being improved on.
 """

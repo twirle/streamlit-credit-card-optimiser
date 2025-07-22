@@ -1,3 +1,4 @@
+from altair import Column
 import streamlit as st
 from services.data.card_loader import load_card_dataframes
 import pandas as pd
@@ -36,11 +37,25 @@ def render_card_table():
 
     miles_df = df[df["Type"].str.lower() == "miles"].reset_index(drop=True)
 
-    st.markdown("**Current list of supported cards**:")
+    st.markdown("**💳Current list of supported cards**:")
     cashback_tab, miles_tab = st.tabs(["Cashback Cards", "Miles Cards"])
 
     with cashback_tab:
-        st.dataframe(cashback_df, use_container_width=True)
+        st.dataframe(cashback_df, use_container_width=True,
+                     column_config={
+                         "Name": st.column_config.Column(width="medium"),
+                         "Issuer": st.column_config.Column(width="small"),
+                         "Type": st.column_config.Column(width="small"),
+                         "Income Requirement": st.column_config.Column(width="small"),
+                         "Categories": st.column_config.Column(width="large"),
+                     })
 
     with miles_tab:
-        st.dataframe(miles_df, use_container_width=True)
+        st.dataframe(miles_df, use_container_width=True,
+                     column_config={
+                         "Name": st.column_config.Column(width="medium"),
+                         "Issuer": st.column_config.Column(width="small"),
+                         "Type": st.column_config.Column(width="small"),
+                         "Income Requirement": st.column_config.Column(width="small"),
+                         "Categories": st.column_config.Column(width="large"),
+                     })
