@@ -78,17 +78,17 @@ def create_entertainment_utilities_inputs():
         col3, col4 = st.columns(2)
         with col3:
             st.number_input(
-                "Streaming", 0, 200, value=spending.get("streaming", DEFAULT_SPENDING_VALUES["streaming"]), step=5, key="streaming",
+                "Streaming", 0, 200, value=spending.get("streaming", DEFAULT_SPENDING_VALUES["streaming"]), step=25, key="streaming",
                 help=CATEGORY_HELP["Streaming"])
             st.number_input(
                 "Petrol", 0, 1000, value=spending.get("petrol", DEFAULT_SPENDING_VALUES["petrol"]), step=25, key="petrol",
                 help=CATEGORY_HELP["Petrol"])
         with col4:
             st.number_input(
-                "Entertainment", 0, 500, value=spending.get("entertainment", DEFAULT_SPENDING_VALUES["entertainment"]), step=25, key="entertainment",
+                "Entertainment", 0, 1500, value=spending.get("entertainment", DEFAULT_SPENDING_VALUES["entertainment"]), step=25, key="entertainment",
                 help=CATEGORY_HELP["Entertainment"])
             st.number_input(
-                "Utilities", 0, 500, value=spending.get("utilities", DEFAULT_SPENDING_VALUES["utilities"]), step=25, key="utilities",
+                "Utilities", 0, 1000, value=spending.get("utilities", DEFAULT_SPENDING_VALUES["utilities"]), step=25, key="utilities",
                 help=CATEGORY_HELP["Utilities"])
     return st.session_state["streaming"], st.session_state["entertainment"], st.session_state["utilities"], st.session_state["petrol"]
 
@@ -104,11 +104,11 @@ def create_shopping_inputs():
         col1, col2 = st.columns(2)
         with col1:
             st.number_input(
-                "Retail", 0, 1000, value=spending.get("retail", DEFAULT_SPENDING_VALUES["retail"]), step=25, key="retail",
+                "Retail", 0, 3000, value=spending.get("retail", DEFAULT_SPENDING_VALUES["retail"]), step=25, key="retail",
                 help=CATEGORY_HELP["Retail"])
         with col2:
             st.number_input(
-                "Online", 0, 1000, value=spending.get("online", DEFAULT_SPENDING_VALUES["online"]), step=25, key="online",
+                "Online", 0, 3000, value=spending.get("online", DEFAULT_SPENDING_VALUES["online"]), step=25, key="online",
                 help=CATEGORY_HELP["Online"])
     return st.session_state["retail"], st.session_state["online"]
 
@@ -124,11 +124,11 @@ def create_travel_fcy_inputs():
         col5, col6 = st.columns(2)
         with col5:
             st.number_input(
-                "Travel", 0, 2000, value=spending.get("travel", DEFAULT_SPENDING_VALUES["travel"]), step=50, key="travel",
+                "Travel", 0, 3000, value=spending.get("travel", DEFAULT_SPENDING_VALUES["travel"]), step=25, key="travel",
                 help=CATEGORY_HELP["Travel"])
         with col6:
             st.number_input(
-                "FCY", 0, 2000, value=spending.get("fcy", DEFAULT_SPENDING_VALUES["fcy"]), step=50, key="fcy",
+                "FCY", 0, 3000, value=spending.get("fcy", DEFAULT_SPENDING_VALUES["fcy"]), step=25, key="fcy",
                 help=CATEGORY_HELP["FCY"])
     return st.session_state["travel"], st.session_state["fcy"]
 

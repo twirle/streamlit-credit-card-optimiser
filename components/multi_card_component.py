@@ -1,14 +1,13 @@
 import streamlit as st
 import pandas as pd
-import itertools
 from components.single_card_component import single_card_rewards_and_breakdowns
-from components.breakdown_format_utils import format_breakdown_df, category_icons, get_ranked_selectbox_options, get_reward_categories_with_icons
-from components.card_calculation_utils import calculate_miles_card_with_bonus_cap, calculate_uob_ladys_rewards, UOB_LADYS_GROUP_MAP, calculate_uob_visa_signature_rewards
+from components.breakdown_format_utils import format_breakdown_df, get_reward_categories_with_icons
+from components.card_calculation_utils import calculate_uob_ladys_rewards, UOB_LADYS_GROUP_MAP
 from itertools import combinations
 from components.state.session import (
-    get_selected_multi_cards, set_selected_multi_cards, initialize_spending_state
+    get_selected_multi_cards, set_selected_multi_cards
 )
-# from components.inputs.spending_inputs import DEFAULT_SPENDING_VALUES
+from components.calculations.dbs_yuu_allocation import allocate_to_yuu
 
 
 def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles_to_sgd_rate):
@@ -96,6 +95,33 @@ def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles
                 {'Category': cat, 'Amount': amt, 'Rate': rate, 'Reward': reward})
         total_reward = reward_ladys + reward_other
         return total_reward, reward_ladys, breakdown_ladys, reward_other, breakdown_other
+
+    # Special handling for DBS yuu
+    if card1.name == 'DBS yuu':
+        yuu_spending, other_spending = allocate_to_yuu(
+            user_spending, min_spend=tier1.min_spend or 600, cap=tier1.cap or 600)
+        from components.single_card_component import calculate_miles_card_rewards, calculate_cashback_card_rewards
+        reward1, breakdown1 = calculate_miles_card_rewards(
+            card1, tier1, yuu_spending, miles_to_sgd_rate)
+        # For card2, allocate remaining
+        reward2, breakdown2 = 0, []
+        if sum(other_spending.values()) > 0:
+            reward2, breakdown2 = calculate_miles_card_rewards(card2, tier2, other_spending, miles_to_sgd_rate) if card2.card_type.lower(
+            ) == 'miles' else calculate_cashback_card_rewards(card2, tier2, other_spending)
+        total_combined_reward = reward1 + reward2
+        return reward1, breakdown1, reward2, breakdown2, total_combined_reward
+    if card2.name == 'DBS yuu':
+        yuu_spending, other_spending = allocate_to_yuu(
+            user_spending, min_spend=tier2.min_spend or 600, cap=tier2.cap or 600)
+        from components.single_card_component import calculate_miles_card_rewards, calculate_cashback_card_rewards
+        reward2, breakdown2 = calculate_miles_card_rewards(
+            card2, tier2, yuu_spending, miles_to_sgd_rate)
+        reward1, breakdown1 = 0, []
+        if sum(other_spending.values()) > 0:
+            reward1, breakdown1 = calculate_miles_card_rewards(card1, tier1, other_spending, miles_to_sgd_rate) if card1.card_type.lower(
+            ) == 'miles' else calculate_cashback_card_rewards(card1, tier1, other_spending)
+        total_combined_reward = reward1 + reward2
+        return reward1, breakdown1, reward2, breakdown2, total_combined_reward
 
     # If either card is Lady's or Solitaire, try all valid group assignments
     if is_ladys(card1) or is_solitaire(card1):
@@ -287,18 +313,16 @@ def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles
             return other_reward, other_breakdown, visa_reward, visa_breakdown, visa_reward + other_reward
     cap1 = tier1.cap if tier1.cap is not None else float('inf')
     cap2 = tier2.cap if tier2.cap is not None else float('inf')
-    used_cap1 = 0
-    used_cap2 = 0
     reward1 = 0
     reward2 = 0
-    breakdown1 = []
-    breakdown2 = []
+    # Aggregate by category for each card
+    category_agg1 = {}
+    category_agg2 = {}
     for cat in categories:
         amt = user_spending.get(cat, 0)
         if amt == 0:
             continue
-
-        # Calculate effective reward for each card for this category
+        # Calculate potential reward for each card (uncapped)
         rate1 = get_rate(card1, tier1, cat)
         rate2 = get_rate(card2, tier2, cat)
         is_cashback1 = card1.card_type.lower() == 'cashback'
@@ -307,48 +331,40 @@ def allocate_spending_two_cards(card1, tier1, card2, tier2, user_spending, miles
             rate1 / 100) if is_cashback1 else rate1 * miles_to_sgd_rate
         reward_per_dollar2 = (
             rate2 / 100) if is_cashback2 else rate2 * miles_to_sgd_rate
-
-        # Allocate to card with higher reward per dollar, up to its cap
-        # Calculate remaining cap for each card
-        rem_cap1 = cap1 - used_cap1
-        rem_cap2 = cap2 - used_cap2
-
-        # Max amount that can be allocated to each card before hitting cap
-        max_amt1 = rem_cap1 / reward_per_dollar1 if reward_per_dollar1 > 0 else 0
-        max_amt2 = rem_cap2 / reward_per_dollar2 if reward_per_dollar2 > 0 else 0
-
-        # Decide allocation
+        # Allocate to card with higher reward per dollar
         if reward_per_dollar1 >= reward_per_dollar2:
-            amt1 = min(amt, max_amt1)
-            reward_amt1 = amt1 * reward_per_dollar1
-            reward1 += reward_amt1
-            breakdown1.append({'Category': cat, 'Amount': amt1,
-                              'Rate': rate1, 'Reward': reward_amt1})
-            used_cap1 += reward_amt1
-            amt2 = amt - amt1
-            if amt2 > 0 and reward_per_dollar2 > 0:
-                amt2 = min(amt2, max_amt2)
-                reward_amt2 = amt2 * reward_per_dollar2
-                reward2 += reward_amt2
-                breakdown2.append(
-                    {'Category': cat, 'Amount': amt2, 'Rate': rate2, 'Reward': reward_amt2})
-                used_cap2 += reward_amt2
+            amt1 = amt
+            amt2 = 0
         else:
-            amt2 = min(amt, max_amt2)
-            reward_amt2 = amt2 * reward_per_dollar2
-            reward2 += reward_amt2
-            breakdown2.append({'Category': cat, 'Amount': amt2,
-                              'Rate': rate2, 'Reward': reward_amt2})
-            used_cap2 += reward_amt2
-            amt1 = amt - amt2
-            if amt1 > 0 and reward_per_dollar1 > 0:
-                amt1 = min(amt1, max_amt1)
-                reward_amt1 = amt1 * reward_per_dollar1
-                reward1 += reward_amt1
-                breakdown1.append(
-                    {'Category': cat, 'Amount': amt1, 'Rate': rate1, 'Reward': reward_amt1})
-                used_cap1 += reward_amt1
-
+            amt1 = 0
+            amt2 = amt
+        reward_amt1 = amt1 * reward_per_dollar1
+        reward_amt2 = amt2 * reward_per_dollar2
+        reward1 += reward_amt1
+        reward2 += reward_amt2
+        # Aggregate for card 1
+        if amt1 > 0:
+            if cat not in category_agg1:
+                category_agg1[cat] = {
+                    'Category': cat, 'Amount': amt1, 'Rate': rate1, 'Reward': reward_amt1}
+            else:
+                category_agg1[cat]['Amount'] += amt1
+                category_agg1[cat]['Reward'] += reward_amt1
+        # Aggregate for card 2
+        if amt2 > 0:
+            if cat not in category_agg2:
+                category_agg2[cat] = {
+                    'Category': cat, 'Amount': amt2, 'Rate': rate2, 'Reward': reward_amt2}
+            else:
+                category_agg2[cat]['Amount'] += amt2
+                category_agg2[cat]['Reward'] += reward_amt2
+    # Cap the total reward for cashback cards
+    if card1.card_type.lower() == 'cashback' and tier1.cap is not None and reward1 > tier1.cap:
+        reward1 = tier1.cap
+    if card2.card_type.lower() == 'cashback' and tier2.cap is not None and reward2 > tier2.cap:
+        reward2 = tier2.cap
+    breakdown1 = list(category_agg1.values())
+    breakdown2 = list(category_agg2.values())
     total_combined_reward = reward1 + reward2
     return reward1, breakdown1, reward2, breakdown2, total_combined_reward
 
@@ -357,7 +373,8 @@ def render_multi_card_component(user_spending_data, miles_to_sgd_rate=0.02, card
     st.subheader("🃏 Multi-Card Monthly Rewards")
 
     if cards is None:
-        raise ValueError("cards must be provided to render_multi_card_component")
+        raise ValueError(
+            "cards must be provided to render_multi_card_component")
 
     # Get all cards and their single rewards
     single_result = single_card_rewards_and_breakdowns(
@@ -374,7 +391,7 @@ def render_multi_card_component(user_spending_data, miles_to_sgd_rate=0.02, card
     card_names = [card.name for card in cards]
 
     # Compute all unique 2-card combinations
-    combos = list(itertools.combinations(cards, 2))
+    combos = list(combinations(cards, 2))
     results = []
     combo_lookup = {}
     for card1, card2 in combos:
