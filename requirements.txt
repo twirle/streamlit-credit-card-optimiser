@@ -3,3 +3,4 @@ pandas
 plotly
 psutil
 pydantic>=1.10
+pytest
