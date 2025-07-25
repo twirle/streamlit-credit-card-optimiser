@@ -47,7 +47,9 @@ def create_food_daily_inputs():
     for key in ["dining", "groceries", "transport", "simplygo"]:
         if key not in spending:
             spending[key] = DEFAULT_SPENDING_VALUES[key]
+
     set_user_spending(spending)
+
     with st.sidebar.expander("🍽️ Food & Daily", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
@@ -73,7 +75,9 @@ def create_entertainment_utilities_inputs():
     for key in ["streaming", "entertainment", "utilities", "petrol"]:
         if key not in spending:
             spending[key] = DEFAULT_SPENDING_VALUES[key]
+
     set_user_spending(spending)
+
     with st.sidebar.expander("🎬 Entertainment & Bills", expanded=True):
         col3, col4 = st.columns(2)
         with col3:
@@ -99,7 +103,9 @@ def create_shopping_inputs():
     for key in ["retail", "online"]:
         if key not in spending:
             spending[key] = DEFAULT_SPENDING_VALUES[key]
+
     set_user_spending(spending)
+
     with st.sidebar.expander("🛍️ Shopping", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
@@ -119,7 +125,9 @@ def create_travel_fcy_inputs():
     for key in ["travel", "fcy"]:
         if key not in spending:
             spending[key] = DEFAULT_SPENDING_VALUES[key]
+
     set_user_spending(spending)
+
     with st.sidebar.expander("✈️ Travel & FCY", expanded=True):
         col5, col6 = st.columns(2)
         with col5:
@@ -143,15 +151,22 @@ def create_spending_summary(total):
 def create_spending_inputs():
     """Create spending inputs with enhanced UI and progress indicators"""
     initialize_spending_session_state()
-    st.sidebar.header("📊 Monthly Spending")
+
+    st.sidebar.header("\U0001F4CA Monthly Spending")
     miles_value_cents = create_miles_valuation_input()
-    st.sidebar.subheader("💸 Spending Categories")
+
+    # Synchronize miles_to_sgd_rate with miles_value_cents
+    st.session_state["miles_to_sgd_rate"] = miles_value_cents / 100.0
+    st.sidebar.subheader("\U0001F4B8 Spending Categories")
+
     dining, groceries, transport, simplygo = create_food_daily_inputs()
     streaming, entertainment, utilities, petrol = create_entertainment_utilities_inputs()
     retail, online = create_shopping_inputs()
     travel, fcy = create_travel_fcy_inputs()
+
     total = dining + groceries + petrol + transport + simplygo + streaming + \
         entertainment + utilities + online + travel + fcy + retail
+
     spending = get_user_spending()
     spending.update({
         'dining': dining,
